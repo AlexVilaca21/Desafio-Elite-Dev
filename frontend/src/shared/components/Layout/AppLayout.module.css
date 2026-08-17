@@ -1,0 +1,26 @@
+.shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #f6f4f1;
+  color: #1a1a1a;
+}
+
+.header {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #ddd6cc;
+  background: #fffdf9;
+}
+
+.brand {
+  font-size: 1.1rem;
+  letter-spacing: 0.02em;
+}
+
+.main {
+  flex: 1;
+  padding: 1.5rem;
+  max-width: 1100px;
+  width: 100%;
+  margin: 0 auto;
+}

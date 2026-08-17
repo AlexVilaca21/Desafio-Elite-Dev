@@ -1,0 +1,101 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.search {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.search input {
+  min-width: 220px;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid #ccc4b8;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.search button {
+  padding: 0.55rem 0.9rem;
+  border: none;
+  border-radius: 6px;
+  background: #0f3d2e;
+  color: #fff;
+  cursor: pointer;
+}
+
+.search button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.status,
+.meta {
+  color: #5c564e;
+}
+
+.error {
+  color: #8b1e1e;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.card {
+  overflow: hidden;
+  border: 1px solid #ddd6cc;
+  border-radius: 10px;
+  background: #fffdf9;
+}
+
+.card img,
+.placeholder {
+  display: block;
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+}
+
+.placeholder {
+  display: grid;
+  place-items: center;
+  background: #ece7df;
+  color: #7a7368;
+}
+
+.content {
+  padding: 0.9rem 1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.content h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.content p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.attractions {
+  color: #0f3d2e;
+}
