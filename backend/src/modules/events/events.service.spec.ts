@@ -5,7 +5,6 @@ import { EventsService } from './events.service';
 
 describe('EventsService', () => {
   let service: EventsService;
-  let ticketmasterService: jest.Mocked<TicketmasterService>;
 
   const mockSearchResponse = {
     _embedded: {
@@ -56,27 +55,35 @@ describe('EventsService', () => {
     },
   };
 
+  const searchEvents = jest.fn();
+  const getEventById = jest.fn();
+  const getEventImages = jest.fn();
+
   beforeEach(async () => {
+    searchEvents.mockReset();
+    getEventById.mockReset();
+    getEventImages.mockReset();
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         EventsService,
         {
           provide: TicketmasterService,
           useValue: {
-            searchEvents: jest.fn(),
-            getEventById: jest.fn(),
+            searchEvents,
+            getEventById,
+            getEventImages,
           },
         },
       ],
     }).compile();
 
     service = module.get(EventsService);
-    ticketmasterService = module.get(TicketmasterService);
   });
 
   describe('searchEvents', () => {
     it('should return mapped events from Ticketmaster', async () => {
-      ticketmasterService.searchEvents.mockResolvedValue(mockSearchResponse);
+      searchEvents.mockResolvedValue(mockSearchResponse);
 
       const query: SearchEventsQueryDto = {
         keyword: 'rock',
@@ -85,7 +92,7 @@ describe('EventsService', () => {
       };
       const result = await service.searchEvents(query);
 
-      expect(ticketmasterService.searchEvents).toHaveBeenCalledWith(
+      expect(searchEvents).toHaveBeenCalledWith(
         expect.objectContaining({
           keyword: 'rock',
           countryCode: 'BR',
@@ -95,17 +102,57 @@ describe('EventsService', () => {
       );
 
       expect(result.events).toHaveLength(1);
-      expect(result.events[0]).toEqual(
+      expect(result.events[0]).toMatchObject({
+        id: 'event-1',
+        name: 'Rock Show',
+        imageUrl: 'https://example.com/image.jpg',
+        startDate: '2026-09-01',
+        attractions: ['Band X'],
+      });
+      expect(result.events[0].venue).toMatchObject({
+        name: 'Arena',
+        city: 'São Paulo',
+      });
+      expect(result.page.totalElements).toBe(1);
+    });
+
+    it('should search events by state', async () => {
+      searchEvents.mockResolvedValue(mockSearchResponse);
+
+      await service.searchEvents({
+        stateCode: 'SP',
+        countryCode: 'BR',
+        page: 0,
+        size: 20,
+      });
+
+      expect(searchEvents).toHaveBeenCalledWith(
         expect.objectContaining({
-          id: 'event-1',
-          name: 'Rock Show',
-          imageUrl: 'https://example.com/image.jpg',
-          startDate: '2026-09-01',
-          attractions: ['Band X'],
-          venue: expect.objectContaining({ name: 'Arena', city: 'São Paulo' }),
+          stateCode: 'SP',
+          countryCode: 'BR',
         }),
       );
-      expect(result.page.totalElements).toBe(1);
+    });
+
+    it('should skip default country when searching by venue', async () => {
+      searchEvents.mockResolvedValue(mockSearchResponse);
+
+      await service.searchEvents({
+        venueId: 'venue-1',
+        page: 0,
+        size: 20,
+      });
+
+      expect(searchEvents).toHaveBeenCalledWith(
+        expect.not.objectContaining({
+          countryCode: 'BR',
+        }),
+      );
+      expect(searchEvents).toHaveBeenCalledWith(
+        expect.objectContaining({
+          venueId: 'venue-1',
+        }),
+      );
     });
   });
 
@@ -119,15 +166,28 @@ describe('EventsService', () => {
         ],
       };
 
-      ticketmasterService.getEventById.mockResolvedValue(eventDetail);
+      getEventById.mockResolvedValue(eventDetail);
 
       const result = await service.getEventById('event-1');
 
-      expect(ticketmasterService.getEventById).toHaveBeenCalledWith('event-1');
+      expect(getEventById).toHaveBeenCalledWith('event-1');
       expect(result.description).toBe('A great show');
       expect(result.priceRanges).toEqual([
         { type: 'standard', currency: 'BRL', min: 100, max: 300 },
       ]);
+    });
+  });
+
+  describe('getEventImages', () => {
+    it('should return event images', async () => {
+      getEventImages.mockResolvedValue({
+        images: [{ url: 'https://example.com/image.jpg', ratio: '16_9' }],
+      });
+
+      const result = await service.getEventImages('event-1');
+
+      expect(result.images).toHaveLength(1);
+      expect(result.images[0].url).toBe('https://example.com/image.jpg');
     });
   });
 });

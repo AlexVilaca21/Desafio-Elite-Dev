@@ -22,18 +22,23 @@ export interface TicketmasterVenue {
   id: string;
   name: string;
   url?: string;
+  postalCode?: string;
+  timezone?: string;
   city?: { name: string };
   state?: { name: string; stateCode: string };
   country?: { name: string; countryCode: string };
   address?: { line1?: string };
   location?: { latitude: string; longitude: string };
+  images?: TicketmasterImage[];
 }
 
 export interface TicketmasterAttraction {
   id: string;
   name: string;
   url?: string;
+  images?: TicketmasterImage[];
   classifications?: TicketmasterClassification[];
+  upcomingEvents?: Record<string, number>;
 }
 
 export interface TicketmasterEventDates {
@@ -78,20 +83,75 @@ export interface TicketmasterEvent {
   };
 }
 
+export interface TicketmasterPage {
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  number: number;
+}
+
 export interface TicketmasterEventsSearchResponse {
   _embedded?: {
     events?: TicketmasterEvent[];
   };
-  page?: {
-    size: number;
-    totalElements: number;
-    totalPages: number;
-    number: number;
-  };
+  page?: TicketmasterPage;
 }
 
 export interface TicketmasterEventDetailResponse extends TicketmasterEvent {
   _embedded?: {
+    venues?: TicketmasterVenue[];
+    attractions?: TicketmasterAttraction[];
+  };
+}
+
+export interface TicketmasterEventImagesResponse {
+  images?: TicketmasterImage[];
+}
+
+export interface TicketmasterVenuesSearchResponse {
+  _embedded?: {
+    venues?: TicketmasterVenue[];
+  };
+  page?: TicketmasterPage;
+}
+
+export interface TicketmasterAttractionsSearchResponse {
+  _embedded?: {
+    attractions?: TicketmasterAttraction[];
+  };
+  page?: TicketmasterPage;
+}
+
+export interface TicketmasterGenre {
+  id: string;
+  name: string;
+  _embedded?: {
+    subgenres?: TicketmasterClassificationLevel[];
+  };
+}
+
+export interface TicketmasterSegment {
+  id: string;
+  name: string;
+  _embedded?: {
+    genres?: TicketmasterGenre[];
+  };
+}
+
+export interface TicketmasterClassificationItem {
+  segment?: TicketmasterSegment;
+}
+
+export interface TicketmasterClassificationsSearchResponse {
+  _embedded?: {
+    classifications?: TicketmasterClassificationItem[];
+  };
+  page?: TicketmasterPage;
+}
+
+export interface TicketmasterSuggestResponse {
+  _embedded?: {
+    events?: TicketmasterEvent[];
     venues?: TicketmasterVenue[];
     attractions?: TicketmasterAttraction[];
   };

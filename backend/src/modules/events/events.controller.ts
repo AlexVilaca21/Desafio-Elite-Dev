@@ -1,5 +1,9 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
-import { EventDetailDto, EventsSearchResponseDto } from './dto/event.dto';
+import {
+  EventDetailDto,
+  EventImagesDto,
+  EventsSearchResponseDto,
+} from './dto/event.dto';
 import { SearchEventsQueryDto } from './dto/search-events-query.dto';
 import { EventsService } from './events.service';
 
@@ -12,6 +16,11 @@ export class EventsController {
     @Query() query: SearchEventsQueryDto,
   ): Promise<EventsSearchResponseDto> {
     return this.eventsService.searchEvents(query);
+  }
+
+  @Get(':id/images')
+  getEventImages(@Param('id') id: string): Promise<EventImagesDto> {
+    return this.eventsService.getEventImages(id);
   }
 
   @Get(':id')

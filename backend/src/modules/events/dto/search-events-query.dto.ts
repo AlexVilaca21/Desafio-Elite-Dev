@@ -1,13 +1,18 @@
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsEnum,
   IsInt,
   IsISO8601,
   IsOptional,
   IsString,
+  Length,
+  Matches,
   Max,
   Min,
 } from 'class-validator';
+
+const toUpperCase = ({ value }: { value: unknown }) =>
+  typeof value === 'string' ? value.toUpperCase() : value;
 
 export enum EventSortOrder {
   RELEVANCE_DESC = 'relevance,desc',
@@ -29,11 +34,25 @@ export class SearchEventsQueryDto {
 
   @IsOptional()
   @IsString()
+  @Length(2, 2)
+  @Matches(/^[A-Z]{2}$/)
+  @Transform(toUpperCase)
   countryCode?: string;
 
   @IsOptional()
   @IsString()
+  @Length(2, 2)
+  @Matches(/^[A-Z]{2}$/)
+  @Transform(toUpperCase)
   stateCode?: string;
+
+  @IsOptional()
+  @IsString()
+  venueId?: string;
+
+  @IsOptional()
+  @IsString()
+  attractionId?: string;
 
   @IsOptional()
   @IsString()

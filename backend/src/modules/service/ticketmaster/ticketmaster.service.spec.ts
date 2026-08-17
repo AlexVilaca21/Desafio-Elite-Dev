@@ -69,6 +69,65 @@ describe('TicketmasterService', () => {
     expect(result).toEqual(payload);
   });
 
+  it('should search venues by state', async () => {
+    const payload = { _embedded: { venues: [] } };
+    httpService.get.mockReturnValue(mockResponse(payload));
+
+    await service.searchVenues({ stateCode: 'SP', countryCode: 'BR' });
+
+    expect(httpService.get).toHaveBeenCalledWith(
+      'https://app.ticketmaster.com/discovery/v2/venues.json',
+      {
+        params: {
+          stateCode: 'SP',
+          countryCode: 'BR',
+          apikey: mockApiKey,
+        },
+      },
+    );
+  });
+
+  it('should search attractions, classifications and suggest', async () => {
+    httpService.get.mockReturnValue(mockResponse({}));
+
+    await service.searchAttractions({ keyword: 'madonna' });
+    await service.searchClassifications({ keyword: 'music' });
+    await service.suggest({ keyword: 'rock', countryCode: 'BR' });
+    await service.getEventImages('event-1');
+    await service.getVenueById('venue-1');
+    await service.getAttractionById('attr-1');
+    await service.getClassificationById('class-1');
+
+    expect(httpService.get).toHaveBeenCalledWith(
+      'https://app.ticketmaster.com/discovery/v2/attractions.json',
+      { params: { keyword: 'madonna', apikey: mockApiKey } },
+    );
+    expect(httpService.get).toHaveBeenCalledWith(
+      'https://app.ticketmaster.com/discovery/v2/classifications.json',
+      { params: { keyword: 'music', apikey: mockApiKey } },
+    );
+    expect(httpService.get).toHaveBeenCalledWith(
+      'https://app.ticketmaster.com/discovery/v2/suggest.json',
+      { params: { keyword: 'rock', countryCode: 'BR', apikey: mockApiKey } },
+    );
+    expect(httpService.get).toHaveBeenCalledWith(
+      'https://app.ticketmaster.com/discovery/v2/events/event-1/images.json',
+      { params: { apikey: mockApiKey } },
+    );
+    expect(httpService.get).toHaveBeenCalledWith(
+      'https://app.ticketmaster.com/discovery/v2/venues/venue-1.json',
+      { params: { apikey: mockApiKey } },
+    );
+    expect(httpService.get).toHaveBeenCalledWith(
+      'https://app.ticketmaster.com/discovery/v2/attractions/attr-1.json',
+      { params: { apikey: mockApiKey } },
+    );
+    expect(httpService.get).toHaveBeenCalledWith(
+      'https://app.ticketmaster.com/discovery/v2/classifications/class-1.json',
+      { params: { apikey: mockApiKey } },
+    );
+  });
+
   it('should throw when API key is missing', async () => {
     const module = await Test.createTestingModule({
       providers: [

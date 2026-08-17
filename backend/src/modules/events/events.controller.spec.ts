@@ -31,10 +31,12 @@ describe('EventsController', () => {
 
   const searchEvents = jest.fn().mockResolvedValue(mockSearchResult);
   const getEventById = jest.fn().mockResolvedValue(mockEventDetail);
+  const getEventImages = jest.fn().mockResolvedValue({ images: [] });
 
   beforeEach(async () => {
     searchEvents.mockClear();
     getEventById.mockClear();
+    getEventImages.mockClear();
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [EventsController],
@@ -44,6 +46,7 @@ describe('EventsController', () => {
           useValue: {
             searchEvents,
             getEventById,
+            getEventImages,
           },
         },
       ],
@@ -57,6 +60,7 @@ describe('EventsController', () => {
       const query = {
         keyword: 'rock',
         city: 'São Paulo',
+        stateCode: 'SP',
         sort: EventSortOrder.DATE_ASC,
       };
 
@@ -73,6 +77,13 @@ describe('EventsController', () => {
 
       expect(getEventById).toHaveBeenCalledWith('event-1');
       expect(result).toEqual(mockEventDetail);
+    });
+  });
+
+  describe('getEventImages', () => {
+    it('should delegate images to EventsService', async () => {
+      await controller.getEventImages('event-1');
+      expect(getEventImages).toHaveBeenCalledWith('event-1');
     });
   });
 });

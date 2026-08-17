@@ -9,8 +9,16 @@ import { ConfigService } from '@nestjs/config';
 import { AxiosError } from 'axios';
 import { firstValueFrom } from 'rxjs';
 import {
+  TicketmasterAttraction,
+  TicketmasterAttractionsSearchResponse,
+  TicketmasterClassificationItem,
+  TicketmasterClassificationsSearchResponse,
   TicketmasterEventDetailResponse,
+  TicketmasterEventImagesResponse,
   TicketmasterEventsSearchResponse,
+  TicketmasterSuggestResponse,
+  TicketmasterVenue,
+  TicketmasterVenuesSearchResponse,
 } from './interfaces/ticketmaster.interface';
 
 @Injectable()
@@ -34,6 +42,59 @@ export class TicketmasterService {
 
   getEventById(id: string): Promise<TicketmasterEventDetailResponse> {
     return this.request<TicketmasterEventDetailResponse>(`/events/${id}.json`);
+  }
+
+  getEventImages(id: string): Promise<TicketmasterEventImagesResponse> {
+    return this.request<TicketmasterEventImagesResponse>(
+      `/events/${id}/images.json`,
+    );
+  }
+
+  searchVenues(
+    params: Record<string, string | number>,
+  ): Promise<TicketmasterVenuesSearchResponse> {
+    return this.request<TicketmasterVenuesSearchResponse>(
+      '/venues.json',
+      params,
+    );
+  }
+
+  getVenueById(id: string): Promise<TicketmasterVenue> {
+    return this.request<TicketmasterVenue>(`/venues/${id}.json`);
+  }
+
+  searchAttractions(
+    params: Record<string, string | number>,
+  ): Promise<TicketmasterAttractionsSearchResponse> {
+    return this.request<TicketmasterAttractionsSearchResponse>(
+      '/attractions.json',
+      params,
+    );
+  }
+
+  getAttractionById(id: string): Promise<TicketmasterAttraction> {
+    return this.request<TicketmasterAttraction>(`/attractions/${id}.json`);
+  }
+
+  searchClassifications(
+    params: Record<string, string | number>,
+  ): Promise<TicketmasterClassificationsSearchResponse> {
+    return this.request<TicketmasterClassificationsSearchResponse>(
+      '/classifications.json',
+      params,
+    );
+  }
+
+  getClassificationById(id: string): Promise<TicketmasterClassificationItem> {
+    return this.request<TicketmasterClassificationItem>(
+      `/classifications/${id}.json`,
+    );
+  }
+
+  suggest(
+    params: Record<string, string | number>,
+  ): Promise<TicketmasterSuggestResponse> {
+    return this.request<TicketmasterSuggestResponse>('/suggest.json', params);
   }
 
   private async request<T>(
@@ -66,7 +127,7 @@ export class TicketmasterService {
       const status = error.response?.status;
 
       if (status === 404) {
-        throw new NotFoundException('Event not found on Ticketmaster');
+        throw new NotFoundException('Resource not found on Ticketmaster');
       }
 
       if (status === 401 || status === 403) {

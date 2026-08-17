@@ -1,12 +1,14 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { TicketmasterService } from 'modules/service/ticketmaster/ticketmaster.service';
+import { TicketmasterEvent } from 'modules/service/ticketmaster/interfaces/ticketmaster.interface';
+import { compactParams } from 'modules/shared/utils/compact-params';
 import {
-  TicketmasterEvent,
-  TicketmasterImage,
-} from 'modules/service/ticketmaster/interfaces/ticketmaster.interface';
+  mapEventSummary,
+  mapPage,
+} from 'modules/shared/utils/ticketmaster.mapper';
 import {
   EventDetailDto,
-  EventSummaryDto,
+  EventImagesDto,
   EventsSearchResponseDto,
 } from './dto/event.dto';
 import { SearchEventsQueryDto } from './dto/search-events-query.dto';
@@ -25,13 +27,12 @@ export class EventsService {
     const events = response._embedded?.events ?? [];
 
     return {
-      events: events.map((event) => this.mapToSummary(event)),
-      page: {
-        size: response.page?.size ?? query.size ?? 20,
-        totalElements: response.page?.totalElements ?? events.length,
-        totalPages: response.page?.totalPages ?? 1,
-        number: response.page?.number ?? query.page ?? 0,
-      },
+      events: events.map((event) => mapEventSummary(event)),
+      page: mapPage(response.page, {
+        size: query.size ?? 20,
+        number: query.page ?? 0,
+        totalElements: events.length,
+      }),
     };
   }
 
@@ -40,59 +41,50 @@ export class EventsService {
     return this.mapToDetail(response);
   }
 
+  async getEventImages(id: string): Promise<EventImagesDto> {
+    const response = await this.ticketmasterService.getEventImages(id);
+    const images = response.images ?? [];
+
+    if (!images.length) {
+      throw new NotFoundException('Event images not found');
+    }
+
+    return {
+      images: images.map((image) => ({
+        url: image.url,
+        ratio: image.ratio,
+        width: image.width,
+        height: image.height,
+      })),
+    };
+  }
+
   private buildSearchParams(
     query: SearchEventsQueryDto,
   ): Record<string, string | number> {
-    const params: Record<string, string | number> = {
+    const scopedByEntity = Boolean(query.venueId || query.attractionId);
+
+    return compactParams({
       size: query.size ?? 20,
       page: query.page ?? 0,
       sort: query.sort ?? 'relevance,desc',
-      countryCode: query.countryCode ?? 'BR',
-    };
-
-    if (query.keyword) params.keyword = query.keyword;
-    if (query.city) params.city = query.city;
-    if (query.stateCode) params.stateCode = query.stateCode;
-    if (query.classificationName) {
-      params.classificationName = query.classificationName;
-    }
-    if (query.startDateTime) params.startDateTime = query.startDateTime;
-    if (query.endDateTime) params.endDateTime = query.endDateTime;
-
-    return params;
-  }
-
-  private mapToSummary(event: TicketmasterEvent): EventSummaryDto {
-    const primaryClassification = event.classifications?.find(
-      (item) => item.primary,
-    );
-
-    return {
-      id: event.id,
-      name: event.name,
-      url: event.url,
-      imageUrl: this.selectBestImage(event.images),
-      startDate: event.dates?.start?.localDate,
-      startTime: event.dates?.start?.localTime,
-      timezone: event.dates?.timezone,
-      status: event.dates?.status?.code,
-      venue: this.mapVenue(event),
-      classification: primaryClassification
-        ? {
-            segment: primaryClassification.segment?.name,
-            genre: primaryClassification.genre?.name,
-            subGenre: primaryClassification.subGenre?.name,
-          }
-        : undefined,
-      attractions:
-        event._embedded?.attractions?.map((attraction) => attraction.name) ??
-        [],
-    };
+      countryCode: scopedByEntity
+        ? query.countryCode
+        : (query.countryCode ?? 'BR'),
+      keyword: query.keyword,
+      city: query.city,
+      stateCode: query.stateCode,
+      venueId: query.venueId,
+      attractionId: query.attractionId,
+      classificationName: query.classificationName,
+      startDateTime: query.startDateTime,
+      endDateTime: query.endDateTime,
+    });
   }
 
   private mapToDetail(event: TicketmasterEvent): EventDetailDto {
     return {
-      ...this.mapToSummary(event),
+      ...mapEventSummary(event),
       description: event.description,
       info: event.info,
       pleaseNote: event.pleaseNote,
@@ -106,38 +98,5 @@ export class EventsService {
       dateTBA: event.dates?.start?.dateTBA,
       dateTBD: event.dates?.start?.dateTBD,
     };
-  }
-
-  private mapVenue(event: TicketmasterEvent) {
-    const venue = event._embedded?.venues?.[0];
-
-    if (!venue) {
-      return undefined;
-    }
-
-    return {
-      id: venue.id,
-      name: venue.name,
-      city: venue.city?.name,
-      state: venue.state?.name,
-      stateCode: venue.state?.stateCode,
-      country: venue.country?.name,
-      countryCode: venue.country?.countryCode,
-      address: venue.address?.line1,
-      latitude: venue.location?.latitude,
-      longitude: venue.location?.longitude,
-    };
-  }
-
-  private selectBestImage(images?: TicketmasterImage[]): string | undefined {
-    if (!images?.length) {
-      return undefined;
-    }
-
-    const preferred = images.find(
-      (image) => image.ratio === '16_9' && !image.fallback,
-    );
-
-    return preferred?.url ?? images[0]?.url;
   }
 }

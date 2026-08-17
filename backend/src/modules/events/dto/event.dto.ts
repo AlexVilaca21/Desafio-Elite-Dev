@@ -1,12 +1,16 @@
 export class EventVenueDto {
   id: string;
   name: string;
+  url?: string;
+  imageUrl?: string;
   city?: string;
   state?: string;
   stateCode?: string;
   country?: string;
   countryCode?: string;
   address?: string;
+  postalCode?: string;
+  timezone?: string;
   latitude?: string;
   longitude?: string;
 }
@@ -46,6 +50,17 @@ export class EventDetailDto extends EventSummaryDto {
   seatmapUrl?: string;
   dateTBA?: boolean;
   dateTBD?: boolean;
+}
+
+export class EventImageDto {
+  url: string;
+  ratio?: string;
+  width?: number;
+  height?: number;
+}
+
+export class EventImagesDto {
+  images: EventImageDto[];
 }
 
 export class EventsSearchResponseDto {
