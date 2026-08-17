@@ -1,9 +1,17 @@
 import { http } from "@/shared/api/http";
-import type { EventsSearchResponse } from "../types/event.types";
+import type {
+	EventDetail,
+	EventSeating,
+	EventsSearchResponse,
+	Reservation,
+} from "../types/event.types";
 
 export type SearchEventsParams = {
 	keyword?: string;
 	city?: string;
+	stateCode?: string;
+	countryCode?: string;
+	venueId?: string;
 	size?: number;
 	page?: number;
 };
@@ -25,4 +33,23 @@ export function searchEvents(
 	params: SearchEventsParams = {},
 ): Promise<EventsSearchResponse> {
 	return http<EventsSearchResponse>(`/events${toQuery(params)}`);
+}
+
+export function getEventById(id: string): Promise<EventDetail> {
+	return http<EventDetail>(`/events/${encodeURIComponent(id)}`);
+}
+
+export function getEventSeating(id: string): Promise<EventSeating> {
+	return http<EventSeating>(`/events/${encodeURIComponent(id)}/seating`);
+}
+
+export function createReservation(payload: {
+	eventId: string;
+	seatIds: string[];
+	paymentOutcome: "approve" | "decline";
+}): Promise<Reservation> {
+	return http<Reservation>("/reservations", {
+		method: "POST",
+		body: payload,
+	});
 }

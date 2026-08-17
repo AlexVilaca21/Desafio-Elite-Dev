@@ -20,8 +20,22 @@ export async function http<T>(
 	});
 
 	if (!response.ok) {
-		const message = await response.text();
-		throw new Error(message || `HTTP ${response.status}`);
+		const text = await response.text();
+		let message = text || `HTTP ${response.status}`;
+
+		try {
+			const parsed = JSON.parse(text) as { message?: string | string[] };
+			if (typeof parsed.message === "string") {
+				message = parsed.message;
+			}
+			if (Array.isArray(parsed.message)) {
+				message = parsed.message.join(", ");
+			}
+		} catch {
+			// keep raw text
+		}
+
+		throw new Error(message);
 	}
 
 	if (response.status === 204) {

@@ -1,0 +1,60 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model PublishedEvent {
+  id             String         @id @default(uuid())
+  ticketmasterId String         @unique
+  name           String
+  imageUrl       String?
+  startDate      String?
+  startTime      String?
+  venueName      String?
+  venueCity      String?
+  venueStateCode String?
+  currency       String         @default("BRL")
+  unitPrice      Decimal        @db.Decimal(10, 2)
+  seats          Seat[]
+  reservations   Reservation[]
+  createdAt      DateTime       @default(now())
+}
+
+enum SeatStatus {
+  AVAILABLE
+  SOLD
+}
+
+model Seat {
+  id            String          @id @default(uuid())
+  eventId       String
+  event         PublishedEvent  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  row           String
+  number        Int
+  status        SeatStatus      @default(AVAILABLE)
+  reservationId String?
+  reservation   Reservation?    @relation(fields: [reservationId], references: [id])
+  createdAt     DateTime        @default(now())
+
+  @@unique([eventId, row, number])
+}
+
+enum ReservationStatus {
+  PAID
+  REFUSED
+}
+
+model Reservation {
+  id        String             @id @default(uuid())
+  eventId   String
+  event     PublishedEvent     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  status    ReservationStatus
+  total     Decimal            @db.Decimal(10, 2)
+  currency  String
+  seats     Seat[]
+  createdAt DateTime           @default(now())
+}

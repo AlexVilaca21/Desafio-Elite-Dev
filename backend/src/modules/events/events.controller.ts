@@ -5,6 +5,7 @@ import {
   EventsSearchResponseDto,
 } from './dto/event.dto';
 import { SearchEventsQueryDto } from './dto/search-events-query.dto';
+import { EventSeatingDto } from './dto/seating.dto';
 import { EventsService } from './events.service';
 
 @Controller('events')
@@ -16,6 +17,11 @@ export class EventsController {
     @Query() query: SearchEventsQueryDto,
   ): Promise<EventsSearchResponseDto> {
     return this.eventsService.searchEvents(query);
+  }
+
+  @Get(':id/seating')
+  getEventSeating(@Param('id') id: string): Promise<EventSeatingDto> {
+    return this.eventsService.getEventSeating(id);
   }
 
   @Get(':id/images')

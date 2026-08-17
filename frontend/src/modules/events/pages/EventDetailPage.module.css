@@ -1,0 +1,96 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.back {
+  width: fit-content;
+  color: #0f3d2e;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.back:hover,
+.back:focus-visible {
+  text-decoration: underline;
+}
+
+.status {
+  color: #5c564e;
+}
+
+.error {
+  color: #8b1e1e;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(220px, 360px) 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.cover,
+.placeholder {
+  width: 100%;
+  height: 240px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid #ddd6cc;
+}
+
+.placeholder {
+  display: grid;
+  place-items: center;
+  background: #ece7df;
+  color: #7a7368;
+}
+
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.badge,
+.attractions {
+  color: #0f3d2e;
+  font-weight: 600;
+}
+
+.cta {
+  width: fit-content;
+  margin-top: 0.5rem;
+  padding: 0.55rem 0.9rem;
+  border-radius: 6px;
+  background: #0f3d2e;
+  color: #fff;
+  text-decoration: none;
+}
+
+.block {
+  margin-top: 1.5rem;
+}
+
+.block h2 {
+  margin: 0 0 0.4rem;
+  font-size: 1.1rem;
+}
+
+.prices {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.seatmap {
+  max-width: 100%;
+  border-radius: 10px;
+  border: 1px solid #ddd6cc;
+}
+
+@media (max-width: 720px) {
+  .hero {
+    grid-template-columns: 1fr;
+  }
+}

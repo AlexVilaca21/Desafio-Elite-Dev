@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { PrismaService } from 'modules/prisma/prisma.service';
 import { TicketmasterService } from 'modules/service/ticketmaster/ticketmaster.service';
 import { SearchEventsQueryDto } from './dto/search-events-query.dto';
 import { EventsService } from './events.service';
@@ -73,6 +74,18 @@ describe('EventsService', () => {
             searchEvents,
             getEventById,
             getEventImages,
+          },
+        },
+        {
+          provide: PrismaService,
+          useValue: {
+            publishedEvent: {
+              findUnique: jest.fn(),
+              create: jest.fn(),
+            },
+            seat: {
+              findMany: jest.fn(),
+            },
           },
         },
       ],

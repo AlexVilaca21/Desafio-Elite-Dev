@@ -32,11 +32,13 @@ describe('EventsController', () => {
   const searchEvents = jest.fn().mockResolvedValue(mockSearchResult);
   const getEventById = jest.fn().mockResolvedValue(mockEventDetail);
   const getEventImages = jest.fn().mockResolvedValue({ images: [] });
+  const getEventSeating = jest.fn().mockResolvedValue({ rows: [] });
 
   beforeEach(async () => {
     searchEvents.mockClear();
     getEventById.mockClear();
     getEventImages.mockClear();
+    getEventSeating.mockClear();
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [EventsController],
@@ -47,6 +49,7 @@ describe('EventsController', () => {
             searchEvents,
             getEventById,
             getEventImages,
+            getEventSeating,
           },
         },
       ],
@@ -84,6 +87,13 @@ describe('EventsController', () => {
     it('should delegate images to EventsService', async () => {
       await controller.getEventImages('event-1');
       expect(getEventImages).toHaveBeenCalledWith('event-1');
+    });
+  });
+
+  describe('getEventSeating', () => {
+    it('should delegate seating to EventsService', async () => {
+      await controller.getEventSeating('event-1');
+      expect(getEventSeating).toHaveBeenCalledWith('event-1');
     });
   });
 });
