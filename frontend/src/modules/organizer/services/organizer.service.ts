@@ -53,8 +53,11 @@ export function getOrganizerEvent(id: string): Promise<OrganizerEvent> {
 
 export function searchCatalog(
   params: SearchEventsParams = {},
+  signal?: AbortSignal,
 ): Promise<EventsSearchResponse> {
-  return http<EventsSearchResponse>(`/organizer/catalog${toQuery(params)}`);
+  return http<EventsSearchResponse>(`/organizer/catalog${toQuery(params)}`, {
+    signal,
+  });
 }
 
 export function getCatalogEvent(id: string): Promise<EventDetail> {

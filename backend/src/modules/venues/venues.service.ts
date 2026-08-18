@@ -41,7 +41,7 @@ export class VenuesService {
     const venue = mapVenue(await this.ticketmasterService.getVenueById(id));
 
     if (!venue) {
-      throw new NotFoundException('Venue not found');
+      throw new NotFoundException('Casa de show não encontrada');
     }
 
     return venue;

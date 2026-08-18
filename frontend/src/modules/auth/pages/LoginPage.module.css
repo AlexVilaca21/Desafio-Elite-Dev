@@ -40,7 +40,7 @@
 }
 
 .stub p {
-  color: #d6e4dc;
+  color: rgba(255, 250, 243, 0.82);
   font-size: 0.92rem;
 }
 
@@ -85,7 +85,7 @@
 }
 
 .form button[type='submit']:hover:not(:disabled) {
-  background: #0c3226;
+  background: var(--accent-deep);
 }
 
 .form button:disabled {
@@ -98,7 +98,7 @@
   background: none;
   border: none;
   padding: 0;
-  color: #0f3d2e;
+  color: var(--green);
   font-weight: 600;
   text-align: left;
   text-decoration: none;
@@ -107,9 +107,9 @@
 
 .notice {
   padding: 0.55rem 0.7rem;
-  border-radius: 6px;
-  background: #eef4f0;
-  color: #0f3d2e;
+  border-radius: 8px;
+  background: var(--green-soft);
+  color: var(--green);
 }
 
 .error {
@@ -142,7 +142,7 @@
   padding: 0;
   border: none;
   background: none;
-  color: #0f3d2e;
+  color: var(--green);
   font-weight: 600;
   cursor: pointer;
 }

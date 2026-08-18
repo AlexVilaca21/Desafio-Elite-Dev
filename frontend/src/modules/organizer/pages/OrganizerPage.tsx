@@ -1,26 +1,48 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { formatEventDate, formatMoney, formatVenue } from '@/modules/events/utils/format';
+import AddIcon from '@mui/icons-material/Add';
+import SearchIcon from '@mui/icons-material/Search';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Skeleton from '@mui/material/Skeleton';
+import TextField from '@mui/material/TextField';
+import {
+  emptyEventFilters,
+  type EventFiltersValue,
+} from '@/modules/events/types/event-filters';
+import { formatEventDate, formatMoney } from '@/modules/events/utils/format';
+import { filtersToSearchParams } from '@/modules/events/utils/filters';
 import { mediaUrl } from '@/shared/utils/media';
-import type { EventSummary } from '@/modules/events/types/event.types';
+import { getErrorMessage, isAbortError } from '@/shared/api/api-error';
+import { ErrorAlert } from '@/shared/components/Feedback/ErrorAlert';
+import { useDebouncedValue } from '@/shared/hooks/useDebouncedValue';
+import { CatalogSearchModal } from '../components/CatalogSearchModal';
 import {
   listOrganizerEvents,
   searchCatalog,
   unpublishEvent,
 } from '../services/organizer.service';
 import type { OrganizerEvent } from '../types/organizer.types';
+import type { EventSummary } from '@/modules/events/types/event.types';
 import styles from './OrganizerPage.module.css';
 
 export function OrganizerPage() {
   const navigate = useNavigate();
   const [published, setPublished] = useState<OrganizerEvent[]>([]);
   const [catalog, setCatalog] = useState<EventSummary[]>([]);
-  const [keyword, setKeyword] = useState('');
+  const [filters, setFilters] = useState<EventFiltersValue>(
+    emptyEventFilters({ sort: 'relevance,desc' }),
+  );
+  const [modalOpen, setModalOpen] = useState(false);
   const [loadingBoard, setLoadingBoard] = useState(true);
   const [loadingCatalog, setLoadingCatalog] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+
+  const keyword = useDebouncedValue(filters.keyword);
+  const city = useDebouncedValue(filters.city);
+  const queryKey = JSON.stringify({ ...filters, keyword, city });
 
   async function loadBoard() {
     setLoadingBoard(true);
@@ -29,11 +51,7 @@ export function OrganizerPage() {
     try {
       setPublished(await listOrganizerEvents());
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : 'Não foi possível carregar o cartaz',
-      );
+      setError(getErrorMessage(err, 'Não foi possível carregar o cartaz.'));
     } finally {
       setLoadingBoard(false);
     }
@@ -43,28 +61,47 @@ export function OrganizerPage() {
     void loadBoard();
   }, []);
 
-  async function handleCatalogSearch(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  useEffect(() => {
+    if (!modalOpen) {
+      return;
+    }
+
+    const controller = new AbortController();
+    const nextFilters = JSON.parse(queryKey) as EventFiltersValue;
+    void loadCatalog(nextFilters, controller.signal);
+
+    return () => controller.abort();
+  }, [modalOpen, queryKey]);
+
+  async function loadCatalog(
+    nextFilters: EventFiltersValue,
+    signal?: AbortSignal,
+  ) {
     setLoadingCatalog(true);
     setCatalogError(null);
 
     try {
-      const response = await searchCatalog({
-        keyword: keyword.trim() || undefined,
-        countryCode: 'BR',
-        size: 8,
-        page: 0,
-      });
+      const response = await searchCatalog(
+        filtersToSearchParams(nextFilters),
+        signal,
+      );
       setCatalog(response.events);
     } catch (err) {
+      if (isAbortError(err)) {
+        return;
+      }
+
       setCatalog([]);
       setCatalogError(
-        err instanceof Error
-          ? err.message
-          : 'Falha ao buscar no catálogo Ticketmaster',
+        getErrorMessage(
+          err,
+          'Não foi possível buscar no catálogo Ticketmaster.',
+        ),
       );
     } finally {
-      setLoadingCatalog(false);
+      if (!signal?.aborted) {
+        setLoadingCatalog(false);
+      }
     }
   }
 
@@ -88,9 +125,7 @@ export function OrganizerPage() {
       await unpublishEvent(event.id);
       await loadBoard();
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Não foi possível tirar do cartaz',
-      );
+      setError(getErrorMessage(err, 'Não foi possível tirar do cartaz.'));
     } finally {
       setBusyId(null);
     }
@@ -102,13 +137,12 @@ export function OrganizerPage() {
         <p className={styles.kicker}>Casa</p>
         <h1>Montar o cartaz</h1>
         <p>
-          Escolha um show no catálogo Ticketmaster ou crie o evento do zero,
-          com banner, data, local, capacidade e preço. Só o que você publicar
-          aparece para o cliente.
+          Busque no catálogo Ticketmaster ou crie o evento do zero, com banner,
+          data, local, capacidade e preço.
         </p>
       </header>
 
-      {error && <p className={styles.error}>{error}</p>}
+      {error && <ErrorAlert>{error}</ErrorAlert>}
 
       <section className={styles.board}>
         <div className={styles.boardHead}>
@@ -116,12 +150,52 @@ export function OrganizerPage() {
             <h2>No cartaz</h2>
             <p>{published.length} evento(s) à venda</p>
           </div>
-          <Link to="/organizar/novo" className={styles.create}>
-            Criar evento próprio
-          </Link>
+          <Box
+            className={styles.toolbar}
+            sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}
+          >
+            <TextField
+              size="small"
+              value={filters.keyword}
+              onChange={(event) =>
+                setFilters({ ...filters, keyword: event.target.value })
+              }
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault();
+                  setModalOpen(true);
+                }
+              }}
+              placeholder="Buscar no catálogo"
+              aria-label="Buscar no catálogo"
+              sx={{ flex: '1 1 220px', minWidth: 180 }}
+            />
+            <Button
+              variant="contained"
+              startIcon={<SearchIcon />}
+              onClick={() => setModalOpen(true)}
+              disabled={loadingCatalog && modalOpen}
+            >
+              Buscar
+            </Button>
+            <Button
+              component={Link}
+              to="/organizar/novo"
+              variant="outlined"
+              startIcon={<AddIcon />}
+            >
+              Criar evento próprio
+            </Button>
+          </Box>
         </div>
 
-        {loadingBoard && <p className={styles.status}>Carregando sua casa...</p>}
+        {loadingBoard && (
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
+            {Array.from({ length: 3 }, (_, index) => (
+              <Skeleton key={index} variant="rounded" height={260} width={280} />
+            ))}
+          </Box>
+        )}
 
         {!loadingBoard && published.length === 0 && (
           <p className={styles.status}>
@@ -180,67 +254,19 @@ export function OrganizerPage() {
         )}
       </section>
 
-      <section className={styles.catalog}>
-        <div className={styles.boardHead}>
-          <h2>Do catálogo</h2>
-          <p>Ticketmaster — escolha o show e publique na casa</p>
-        </div>
-
-        <form className={styles.search} onSubmit={handleCatalogSearch}>
-          <input
-            type="search"
-            value={keyword}
-            onChange={(event) => setKeyword(event.target.value)}
-            placeholder="Artista, show ou cidade"
-            aria-label="Buscar no catálogo"
-          />
-          <button type="submit" disabled={loadingCatalog}>
-            {loadingCatalog ? 'Buscando...' : 'Buscar catálogo'}
-          </button>
-        </form>
-
-        {catalogError && <p className={styles.error}>{catalogError}</p>}
-
-        {catalog.length > 0 && (
-          <ul className={styles.catalogList}>
-            {catalog.map((event) => {
-              const alreadyOut = event.status === 'published';
-
-              return (
-                <li key={event.id}>
-                  <article className={styles.catalogCard}>
-                    {event.imageUrl ? (
-                      <img src={event.imageUrl} alt="" />
-                    ) : (
-                      <div className={styles.placeholder}>Sem arte</div>
-                    )}
-                    <div>
-                      <h3>{event.name}</h3>
-                      <p>{formatEventDate(event.startDate, event.startTime)}</p>
-                      <p>{formatVenue(event.venue)}</p>
-                      {alreadyOut ? (
-                        <p className={styles.hint}>Já está no cartaz</p>
-                      ) : (
-                        <button
-                          type="button"
-                          className={styles.publish}
-                          onClick={() =>
-                            navigate(
-                              `/organizar/novo/${encodeURIComponent(event.id)}`,
-                            )
-                          }
-                        >
-                          Colocar no cartaz
-                        </button>
-                      )}
-                    </div>
-                  </article>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
+      <CatalogSearchModal
+        open={modalOpen}
+        filters={filters}
+        loading={loadingCatalog}
+        error={catalogError}
+        events={catalog}
+        onFiltersChange={setFilters}
+        onClose={() => setModalOpen(false)}
+        onSelect={(eventId) => {
+          setModalOpen(false);
+          navigate(`/organizar/novo/${encodeURIComponent(eventId)}`);
+        }}
+      />
     </section>
   );
 }

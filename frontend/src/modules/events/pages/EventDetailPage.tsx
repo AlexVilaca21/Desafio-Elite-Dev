@@ -8,6 +8,8 @@ import {
   formatPriceRange,
   formatStartingPrice,
 } from '../utils/format';
+import { getErrorMessage } from '@/shared/api/api-error';
+import { ErrorAlert } from '@/shared/components/Feedback/ErrorAlert';
 import { mediaUrl } from '@/shared/utils/media';
 import styles from './EventDetailPage.module.css';
 
@@ -39,7 +41,7 @@ export function EventDetailPage() {
         if (!cancelled) {
           setEvent(null);
           setError(
-            err instanceof Error ? err.message : 'Falha ao carregar o evento',
+            getErrorMessage(err, 'Não foi possível carregar o evento.'),
           );
         }
       } finally {
@@ -63,7 +65,7 @@ export function EventDetailPage() {
       </Link>
 
       {loading && <p className={styles.status}>Carregando evento...</p>}
-      {error && <p className={styles.error}>{error}</p>}
+      {error && <ErrorAlert>{error}</ErrorAlert>}
 
       {!loading && !error && event && (
         <article>

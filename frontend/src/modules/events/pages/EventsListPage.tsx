@@ -1,8 +1,18 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BRAZIL_STATES } from '../constants/states';
+import Box from '@mui/material/Box';
+import LinearProgress from '@mui/material/LinearProgress';
+import Pagination from '@mui/material/Pagination';
+import Skeleton from '@mui/material/Skeleton';
+import Typography from '@mui/material/Typography';
+import { EventFilters } from '../components/EventFilters';
+import {
+  emptyEventFilters,
+  type EventFiltersValue,
+} from '../types/event-filters';
 import { searchEvents } from '../services/events.service';
 import type { EventSummary } from '../types/event.types';
+import { filtersToSearchParams } from '../utils/filters';
 import {
   formatEventDate,
   formatEventStatus,
@@ -10,20 +20,15 @@ import {
   formatVenue,
 } from '../utils/format';
 import { mediaUrl } from '@/shared/utils/media';
+import { getErrorMessage, isAbortError } from '@/shared/api/api-error';
+import { ErrorAlert } from '@/shared/components/Feedback/ErrorAlert';
+import { useDebouncedValue } from '@/shared/hooks/useDebouncedValue';
 import styles from './EventsListPage.module.css';
 
 const PAGE_SIZE = 12;
 
-type EventFilters = {
-  keyword: string;
-  stateCode: string;
-  city: string;
-};
-
 export function EventsListPage() {
-  const [keyword, setKeyword] = useState('');
-  const [stateCode, setStateCode] = useState('');
-  const [city, setCity] = useState('');
+  const [filters, setFilters] = useState<EventFiltersValue>(emptyEventFilters());
   const [page, setPage] = useState(0);
   const [events, setEvents] = useState<EventSummary[]>([]);
   const [total, setTotal] = useState(0);
@@ -31,44 +36,57 @@ export function EventsListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  async function loadEvents(nextPage: number, filters: EventFilters) {
+  const keyword = useDebouncedValue(filters.keyword);
+  const city = useDebouncedValue(filters.city);
+  const queryKey = JSON.stringify({ ...filters, keyword, city });
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const nextFilters = JSON.parse(queryKey) as EventFiltersValue;
+    setPage(0);
+    void loadEvents(0, nextFilters, controller.signal);
+
+    return () => controller.abort();
+  }, [queryKey]);
+
+  async function loadEvents(
+    nextPage: number,
+    nextFilters: EventFiltersValue,
+    signal?: AbortSignal,
+  ) {
     setLoading(true);
     setError(null);
 
     try {
-      const response = await searchEvents({
-        keyword: filters.keyword.trim() || undefined,
-        stateCode: filters.stateCode || undefined,
-        city: filters.city.trim() || undefined,
-        countryCode: 'BR',
-        size: PAGE_SIZE,
-        page: nextPage,
-      });
+      const response = await searchEvents(
+        filtersToSearchParams(nextFilters, {
+          size: PAGE_SIZE,
+          page: nextPage,
+        }),
+        signal,
+      );
 
       setEvents(response.events);
       setTotal(response.page.totalElements);
       setTotalPages(response.page.totalPages);
       setPage(response.page.number);
     } catch (err) {
+      if (isAbortError(err)) {
+        return;
+      }
+
       setEvents([]);
       setTotal(0);
       setTotalPages(0);
-      setError(
-        err instanceof Error ? err.message : 'Falha ao carregar eventos',
-      );
+      setError(getErrorMessage(err, 'Não foi possível carregar os eventos.'));
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) {
+        setLoading(false);
+      }
     }
   }
 
-  useEffect(() => {
-    void loadEvents(0, { keyword: '', stateCode: '', city: '' });
-  }, []);
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    void loadEvents(0, { keyword, stateCode, city });
-  }
+  const firstLoad = loading && events.length === 0 && !error;
 
   return (
     <section className={styles.page}>
@@ -76,56 +94,45 @@ export function EventsListPage() {
         <div>
           <p className={styles.kicker}>Cartaz</p>
           <h1>Eventos</h1>
-          <p>Só entra no cartaz o que o organizador publicou, com data, local e preço</p>
+          <p>
+            Só entra no cartaz o que o organizador publicou, com data, local e
+            preço
+          </p>
         </div>
-
-        <form className={styles.search} onSubmit={handleSubmit}>
-          <input
-            type="search"
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            placeholder="Nome do evento ou artista"
-            aria-label="Buscar evento"
-          />
-          <input
-            type="text"
-            value={city}
-            onChange={(e) => setCity(e.target.value)}
-            placeholder="Cidade"
-            aria-label="Cidade"
-          />
-          <select
-            value={stateCode}
-            onChange={(e) => setStateCode(e.target.value)}
-            aria-label="Estado"
-          >
-            <option value="">Todos os estados</option>
-            {BRAZIL_STATES.map((state) => (
-              <option key={state.code} value={state.code}>
-                {state.name}
-              </option>
-            ))}
-          </select>
-          <button type="submit" disabled={loading}>
-            Buscar
-          </button>
-        </form>
       </header>
 
-      {loading && <p className={styles.status}>Carregando eventos...</p>}
-      {error && <p className={styles.error}>{error}</p>}
+      <EventFilters
+        value={filters}
+        loading={loading}
+        onChange={setFilters}
+      />
+
+      {loading && <LinearProgress color="primary" />}
+      {error && <ErrorAlert>{error}</ErrorAlert>}
+
+      {firstLoad && (
+        <ul className={styles.list}>
+          {Array.from({ length: 6 }, (_, index) => (
+            <li key={index}>
+              <Skeleton variant="rounded" height={280} />
+            </li>
+          ))}
+        </ul>
+      )}
 
       {!loading && !error && events.length === 0 && (
         <p className={styles.status}>
-          {keyword || stateCode || city
-            ? 'Nenhum evento encontrado. Tente outro estado, cidade ou palavra-chave.'
+          {keyword || city || filters.stateCode || filters.startDate
+            ? 'Nenhum evento encontrado para esses filtros. Tente outro estado, cidade ou data.'
             : 'Ainda não há eventos no cartaz. O organizador publica a partir do catálogo.'}
         </p>
       )}
 
-      {!loading && !error && events.length > 0 && (
+      {events.length > 0 && (
         <>
-          <p className={styles.meta}>{total} resultado(s)</p>
+          <Typography className={styles.meta} color="text.secondary">
+            {total} resultado(s)
+          </Typography>
           <ul className={styles.list}>
             {events.map((item) => {
               const status = formatEventStatus(item.status);
@@ -170,25 +177,19 @@ export function EventsListPage() {
           </ul>
 
           {totalPages > 1 && (
-            <div className={styles.pagination}>
-              <button
-                type="button"
-                disabled={loading || page <= 0}
-                onClick={() => void loadEvents(page - 1, { keyword, stateCode, city })}
-              >
-                Anterior
-              </button>
-              <span>
-                Página {page + 1} de {totalPages}
-              </span>
-              <button
-                type="button"
-                disabled={loading || page + 1 >= totalPages}
-                onClick={() => void loadEvents(page + 1, { keyword, stateCode, city })}
-              >
-                Próxima
-              </button>
-            </div>
+            <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+              <Pagination
+                count={totalPages}
+                page={page + 1}
+                disabled={loading}
+                onChange={(_, next) => {
+                  const nextPage = next - 1;
+                  setPage(nextPage);
+                  void loadEvents(nextPage, { ...filters, keyword, city });
+                }}
+                color="primary"
+              />
+            </Box>
           )}
         </>
       )}

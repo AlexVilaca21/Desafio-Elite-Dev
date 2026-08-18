@@ -1,5 +1,7 @@
 import { HttpService } from '@nestjs/axios';
 import {
+  HttpException,
+  HttpStatus,
   Injectable,
   InternalServerErrorException,
   Logger,
@@ -105,7 +107,7 @@ export class TicketmasterService {
 
     if (!apiKey) {
       throw new InternalServerErrorException(
-        'TICKETMASTER_API_KEY is not configured',
+        'A busca no catálogo está indisponível. Falta configurar a Ticketmaster.',
       );
     }
 
@@ -131,12 +133,21 @@ export class TicketmasterService {
       const status = error.response?.status;
 
       if (status === 404) {
-        throw new NotFoundException('Resource not found on Ticketmaster');
+        throw new NotFoundException(
+          'Não encontramos esse item no catálogo Ticketmaster.',
+        );
       }
 
       if (status === 401 || status === 403) {
         throw new InternalServerErrorException(
-          'Invalid or unauthorized Ticketmaster API key',
+          'A chave da Ticketmaster está inválida ou sem permissão.',
+        );
+      }
+
+      if (status === 429) {
+        throw new HttpException(
+          'O catálogo está ocupado. Aguarde um instante e tente de novo.',
+          HttpStatus.TOO_MANY_REQUESTS,
         );
       }
 
@@ -147,7 +158,7 @@ export class TicketmasterService {
     }
 
     throw new InternalServerErrorException(
-      'Failed to fetch data from Ticketmaster',
+      'Não foi possível falar com o catálogo Ticketmaster. Tente novamente.',
     );
   }
 }

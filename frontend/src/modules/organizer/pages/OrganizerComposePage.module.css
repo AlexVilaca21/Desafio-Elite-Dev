@@ -64,13 +64,13 @@
   height: 180px;
   object-fit: cover;
   border-radius: 10px;
-  background: #0c3226;
+  background: var(--accent-deep);
 }
 
 .placeholder {
   display: grid;
   place-items: center;
-  color: #d6e4dc;
+  color: rgba(255, 250, 243, 0.78);
 }
 
 .poster h2 {
@@ -81,7 +81,7 @@
 
 .poster p {
   margin: 0;
-  color: #d6e4dc;
+  color: rgba(255, 250, 243, 0.78);
   font-size: 0.9rem;
 }
 

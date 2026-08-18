@@ -189,4 +189,28 @@ describe('OrganizerService', () => {
       NotFoundException,
     );
   });
+
+  it('should return every catalog event from all Ticketmaster pages', async () => {
+    searchEvents
+      .mockResolvedValueOnce({
+        _embedded: {
+          events: [{ id: 'tm-1', name: 'Show A', images: [], dates: {} }],
+        },
+        page: { size: 200, number: 0, totalElements: 2, totalPages: 2 },
+      })
+      .mockResolvedValueOnce({
+        _embedded: {
+          events: [{ id: 'tm-2', name: 'Show B', images: [], dates: {} }],
+        },
+        page: { size: 200, number: 1, totalElements: 2, totalPages: 2 },
+      });
+    publishedEvent.findMany.mockResolvedValue([]);
+
+    const result = await service.searchCatalog({ keyword: 'show' });
+
+    expect(searchEvents).toHaveBeenCalledTimes(2);
+    expect(result.events.map((event) => event.id)).toEqual(['tm-1', 'tm-2']);
+    expect(result.page.size).toBe(2);
+    expect(result.page.totalElements).toBe(2);
+  });
 });

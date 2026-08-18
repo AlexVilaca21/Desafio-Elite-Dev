@@ -170,6 +170,23 @@ describe('TicketmasterService', () => {
     );
   });
 
+  it('should throw TOO_MANY_REQUESTS on 429', async () => {
+    const axiosError = new AxiosError('Too many requests');
+    axiosError.response = {
+      status: 429,
+      statusText: 'Too Many Requests',
+      headers: {},
+      config: { headers: new AxiosHeaders() },
+      data: {},
+    };
+
+    httpService.get.mockReturnValue(throwError(() => axiosError));
+
+    await expect(service.searchEvents({})).rejects.toThrow(
+      /catálogo está ocupado/,
+    );
+  });
+
   it('should throw InternalServerErrorException on network error', async () => {
     httpService.get.mockReturnValue(
       throwError(() => new AxiosError('Network error')),

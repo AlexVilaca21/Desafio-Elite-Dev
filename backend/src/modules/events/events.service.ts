@@ -2,14 +2,17 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from 'modules/prisma/prisma.service';
 import { TicketmasterService } from 'modules/service/ticketmaster/ticketmaster.service';
-import { mapEventSummary } from 'modules/shared/utils/ticketmaster.mapper';
 import { isCustomEventId } from 'modules/shared/utils/event-id';
+import { mapEventSummary } from 'modules/shared/utils/ticketmaster.mapper';
 import {
   EventDetailDto,
   EventImagesDto,
   EventsSearchResponseDto,
 } from './dto/event.dto';
-import { SearchEventsQueryDto } from './dto/search-events-query.dto';
+import {
+  EventSortOrder,
+  SearchEventsQueryDto,
+} from './dto/search-events-query.dto';
 import { EventSeatingDto } from './dto/seating.dto';
 import { mapPublishedToSummary } from './published-event.mapper';
 
@@ -32,7 +35,7 @@ export class EventsService {
         where,
         skip: page * size,
         take: size,
-        orderBy: [{ startDate: 'asc' }, { name: 'asc' }],
+        orderBy: this.buildPublishedOrder(query),
       }),
     ]);
 
@@ -136,7 +139,7 @@ export class EventsService {
     const images = response.images ?? [];
 
     if (!images.length) {
-      throw new NotFoundException('Event images not found');
+      throw new NotFoundException('Não encontramos imagens para este evento');
     }
 
     return {
@@ -173,10 +176,45 @@ export class EventsService {
       filters.push({ venueStateCode: query.stateCode });
     }
 
+    const startDate = this.toDateFilter(query.startDateTime);
+    const endDate = this.toDateFilter(query.endDateTime);
+
+    if (startDate || endDate) {
+      filters.push({
+        startDate: {
+          ...(startDate ? { gte: startDate } : {}),
+          ...(endDate ? { lte: endDate } : {}),
+        },
+      });
+    }
+
     if (!filters.length) {
       return {};
     }
 
     return { AND: filters };
+  }
+
+  private toDateFilter(value?: string): string | undefined {
+    if (!value) {
+      return undefined;
+    }
+
+    return value.slice(0, 10);
+  }
+
+  private buildPublishedOrder(
+    query: SearchEventsQueryDto,
+  ): Prisma.PublishedEventOrderByWithRelationInput[] {
+    switch (query.sort) {
+      case EventSortOrder.NAME_ASC:
+        return [{ name: 'asc' }];
+      case EventSortOrder.NAME_DESC:
+        return [{ name: 'desc' }];
+      case EventSortOrder.DATE_DESC:
+        return [{ startDate: 'desc' }, { name: 'asc' }];
+      default:
+        return [{ startDate: 'asc' }, { name: 'asc' }];
+    }
   }
 }

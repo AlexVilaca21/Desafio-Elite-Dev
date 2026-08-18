@@ -26,7 +26,7 @@
 }
 
 .success {
-  color: #0f3d2e;
+  color: var(--success);
   font-weight: 600;
 }
 
@@ -122,10 +122,10 @@
   width: 28px;
   height: 26px;
   padding: 0;
-  border: 1px solid #0f3d2e;
+  border: 1px solid var(--green);
   border-radius: 6px 6px 8px 8px;
   background: #fffdf9;
-  color: #0f3d2e;
+  color: var(--green);
   font-size: 0.65rem;
   cursor: pointer;
 }
@@ -135,7 +135,7 @@
 }
 
 .selected {
-  background: #0f3d2e;
+  background: var(--green);
   color: #fffdf9;
 }
 
@@ -208,7 +208,7 @@
 }
 
 .pay:hover:not(:disabled) {
-  background: #0c3226;
+  background: var(--accent-deep);
 }
 
 .actions {
@@ -233,11 +233,11 @@
   padding: 0.55rem 0.65rem;
   border-radius: 6px;
   background: #eef4f0;
-  color: #0f3d2e;
+  color: var(--green);
 }
 
 .notice a {
-  color: #0f3d2e;
+  color: var(--green);
   font-weight: 700;
 }
 
@@ -281,7 +281,7 @@
 }
 
 .issued a {
-  color: #0f3d2e;
+  color: var(--green);
   font-weight: 700;
 }
 

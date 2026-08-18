@@ -105,12 +105,14 @@ describe('EventsService', () => {
       expect(result.page.totalElements).toBe(1);
     });
 
-    it('should filter published events by state', async () => {
+    it('should filter published events by state and date range', async () => {
       publishedEvent.count.mockResolvedValue(0);
       publishedEvent.findMany.mockResolvedValue([]);
 
       await service.searchEvents({
         stateCode: 'SP',
+        startDateTime: '2026-09-01T00:00:00',
+        endDateTime: '2026-09-30T23:59:59',
         page: 0,
         size: 20,
       });
@@ -118,8 +120,12 @@ describe('EventsService', () => {
       expect(publishedEvent.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: {
-            AND: [{ venueStateCode: 'SP' }],
+            AND: [
+              { venueStateCode: 'SP' },
+              { startDate: { gte: '2026-09-01', lte: '2026-09-30' } },
+            ],
           },
+          orderBy: [{ startDate: 'asc' }, { name: 'asc' }],
         }),
       );
     });

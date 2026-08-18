@@ -12,6 +12,10 @@ export type SearchEventsParams = {
 	stateCode?: string;
 	countryCode?: string;
 	venueId?: string;
+	classificationName?: string;
+	startDateTime?: string;
+	endDateTime?: string;
+	sort?: string;
 	size?: number;
 	page?: number;
 };
@@ -31,12 +35,16 @@ function toQuery(params: SearchEventsParams): string {
 
 export function searchEvents(
 	params: SearchEventsParams = {},
+	signal?: AbortSignal,
 ): Promise<EventsSearchResponse> {
-	return http<EventsSearchResponse>(`/events${toQuery(params)}`);
+	return http<EventsSearchResponse>(`/events${toQuery(params)}`, { signal });
 }
 
-export function getEventById(id: string): Promise<EventDetail> {
-	return http<EventDetail>(`/events/${encodeURIComponent(id)}`);
+export function getEventById(
+	id: string,
+	signal?: AbortSignal,
+): Promise<EventDetail> {
+	return http<EventDetail>(`/events/${encodeURIComponent(id)}`, { signal });
 }
 
 export function getEventSeating(id: string): Promise<EventSeating> {

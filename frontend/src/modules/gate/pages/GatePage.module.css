@@ -115,7 +115,7 @@
 
 .primary:hover:not(:disabled),
 .next:hover {
-  background: #0c3226;
+  background: var(--accent-deep);
 }
 
 .primary:disabled {
@@ -205,7 +205,7 @@
 }
 
 .valid {
-  color: #0f3d2e;
+  color: var(--success);
   background: #e7f3ec;
 }
 

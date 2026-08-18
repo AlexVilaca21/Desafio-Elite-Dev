@@ -44,7 +44,7 @@ export class ClassificationsService {
     );
 
     if (!classification) {
-      throw new NotFoundException('Classification not found');
+      throw new NotFoundException('Classificação não encontrada');
     }
 
     return classification;

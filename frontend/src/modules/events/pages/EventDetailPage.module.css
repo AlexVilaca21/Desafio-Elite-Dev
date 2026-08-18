@@ -83,7 +83,7 @@
 }
 
 .cta:hover {
-  background: #0c3226;
+  background: var(--accent-deep);
 }
 
 .block {

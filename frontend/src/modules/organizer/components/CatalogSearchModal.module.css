@@ -1,0 +1,168 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 1.2rem;
+  background: rgba(28, 18, 22, 0.55);
+}
+
+.dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 760px);
+  max-height: min(88dvh, 820px);
+  overflow: hidden;
+  border-radius: 20px;
+  background: var(--paper);
+  box-shadow: 0 24px 60px rgba(28, 18, 22, 0.28);
+}
+
+.head {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.15rem 1.2rem 1rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.head h2 {
+  margin: 0.15rem 0 0.25rem;
+  font-size: 1.35rem;
+}
+
+.head p {
+  margin: 0;
+}
+
+.kicker {
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--green);
+  font-weight: 700;
+}
+
+.close {
+  flex-shrink: 0;
+  min-height: 2.5rem;
+  padding: 0.4rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.body {
+  overflow: auto;
+  padding: 1rem 1.2rem 1.3rem;
+}
+
+.status,
+.error,
+.hint {
+  margin: 0;
+}
+
+.error {
+  color: var(--danger);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.card {
+  display: grid;
+  grid-template-columns: 118px 1fr;
+  gap: 0.9rem;
+  padding: 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.card img,
+.placeholder {
+  width: 100%;
+  height: 88px;
+  object-fit: cover;
+  border-radius: 8px;
+  background: #ece3d8;
+}
+
+.placeholder {
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.meta h3 {
+  margin: 0;
+  font-size: 1.02rem;
+}
+
+.meta p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.price {
+  color: var(--green);
+  font-weight: 700;
+}
+
+.meta button {
+  width: fit-content;
+  margin-top: 0.45rem;
+  min-height: 2.4rem;
+  padding: 0.35rem 0.8rem;
+  border: none;
+  border-radius: 999px;
+  background: var(--green);
+  color: #fffaf3;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.meta button:hover {
+  background: var(--accent-deep);
+}
+
+@media (max-width: 640px) {
+  .overlay {
+    padding: 0;
+    place-items: stretch;
+  }
+
+  .dialog {
+    width: 100%;
+    max-height: 100dvh;
+    border-radius: 0;
+  }
+
+  .card {
+    grid-template-columns: 1fr;
+  }
+
+  .meta button,
+  .close {
+    width: 100%;
+  }
+}

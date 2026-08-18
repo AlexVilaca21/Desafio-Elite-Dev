@@ -1,7 +1,9 @@
 import {
   BadRequestException,
   ConflictException,
+  HttpException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma, SeatStatus } from '@prisma/client';
@@ -12,14 +14,13 @@ import {
 } from 'modules/events/dto/event.dto';
 import { SearchEventsQueryDto } from 'modules/events/dto/search-events-query.dto';
 import { PrismaService } from 'modules/prisma/prisma.service';
+import { TicketmasterEvent } from 'modules/service/ticketmaster/interfaces/ticketmaster.interface';
 import { TicketmasterService } from 'modules/service/ticketmaster/ticketmaster.service';
 import { catalogUnitPrice } from 'modules/shared/utils/catalog-price';
 import { compactParams } from 'modules/shared/utils/compact-params';
+import { mapWithConcurrency } from 'modules/shared/utils/map-with-concurrency';
 import { buildSeatLayout } from 'modules/shared/utils/seat-layout';
-import {
-  mapEventSummary,
-  mapPage,
-} from 'modules/shared/utils/ticketmaster.mapper';
+import { mapEventSummary } from 'modules/shared/utils/ticketmaster.mapper';
 import { bannerPublicPath, removeLocalBanner } from './banner-storage';
 import { CreateCustomEventDto } from './dto/create-custom-event.dto';
 import { OrganizerEventDto } from './dto/organizer-event.dto';
@@ -28,6 +29,9 @@ import { UpdatePublishedEventDto } from './dto/update-event.dto';
 
 @Injectable()
 export class OrganizerService {
+  private readonly catalogPageSize = 200;
+  private readonly catalogMaxResults = 1000;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly ticketmasterService: TicketmasterService,
@@ -36,27 +40,48 @@ export class OrganizerService {
   async searchCatalog(
     query: SearchEventsQueryDto,
   ): Promise<EventsSearchResponseDto> {
-    const scopedByEntity = Boolean(query.venueId || query.attractionId);
-    const response = await this.ticketmasterService.searchEvents(
-      compactParams({
-        size: query.size ?? 20,
-        page: query.page ?? 0,
-        sort: query.sort ?? 'relevance,desc',
-        countryCode: scopedByEntity
-          ? query.countryCode
-          : (query.countryCode ?? 'BR'),
-        keyword: query.keyword,
-        city: query.city,
-        stateCode: query.stateCode,
-        venueId: query.venueId,
-        attractionId: query.attractionId,
-        classificationName: query.classificationName,
-        startDateTime: query.startDateTime,
-        endDateTime: query.endDateTime,
-      }),
-    );
+    try {
+      return await this.fetchCatalog(query);
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
 
-    const events = response._embedded?.events ?? [];
+      throw new InternalServerErrorException(
+        'Não foi possível buscar os eventos no catálogo. Tente novamente.',
+      );
+    }
+  }
+
+  private async fetchCatalog(
+    query: SearchEventsQueryDto,
+  ): Promise<EventsSearchResponseDto> {
+    const size = this.catalogPageSize;
+    const first = await this.ticketmasterService.searchEvents(
+      this.buildCatalogParams(query, 0, size),
+    );
+    const reportedPages = first.page?.totalPages ?? 1;
+    const maxPages = Math.min(
+      Math.max(reportedPages, 1),
+      Math.ceil(this.catalogMaxResults / size),
+    );
+    const remainingPages = Array.from(
+      { length: Math.max(maxPages - 1, 0) },
+      (_, index) => index + 1,
+    );
+    const remaining = await mapWithConcurrency(this.ticketmast    ),
+   );
+   constbatches = [first, ...remaining];
+
+    const unique = new Map<string, TicketmasterEvent>();
+
+    for (const batch of batches) {
+      for (const event of batch._embedded?.events ?? []) {
+        unique.set(event.id, event);
+      }
+    }
+
+    const events = [...unique.values()];
     const published = await this.prisma.publishedEvent.findMany({
       where: { ticketmasterId: { in: events.map((event) => event.id) } },
       select: { ticketmasterId: true },
@@ -83,12 +108,38 @@ export class OrganizerService {
               ],
         };
       }),
-      page: mapPage(response.page, {
-        size: query.size ?? 20,
-        number: query.page ?? 0,
+      page: {
+        size: events.length,
+        number: 0,
         totalElements: events.length,
-      }),
+        totalPages: 1,
+      },
     };
+  }
+
+  private buildCatalogParams(
+    query: SearchEventsQueryDto,
+    page: number,
+    size: number,
+  ): Record<string, string | number> {
+    const scopedByEntity = Boolean(query.venueId || query.attractionId);
+
+    return compactParams({
+      size,
+      page,
+      sort: query.sort ?? 'relevance,desc',
+      countryCode: scopedByEntity
+        ? query.countryCode
+        : (query.countryCode ?? 'BR'),
+      keyword: query.keyword,
+      city: query.city,
+      stateCode: query.stateCode,
+      venueId: query.venueId,
+      attractionId: query.attractionId,
+      classificationName: query.classificationName,
+      startDateTime: query.startDateTime,
+      endDateTime: query.endDateTime,
+    });
   }
 
   async getCatalogEvent(id: string): Promise<EventDetailDto> {
