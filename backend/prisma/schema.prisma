@@ -7,6 +7,23 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  ORGANIZER
+  CLIENT
+  GATE
+}
+
+model User {
+  id           String         @id @default(uuid())
+  name         String
+  email        String         @unique
+  passwordHash String
+  role         Role
+  reservations Reservation[]
+  tickets      Ticket[]
+  createdAt    DateTime       @default(now())
+}
+
 model PublishedEvent {
   id             String         @id @default(uuid())
   ticketmasterId String         @unique
@@ -30,15 +47,16 @@ enum SeatStatus {
 }
 
 model Seat {
-  id            String          @id @default(uuid())
+  id            String         @id @default(uuid())
   eventId       String
-  event         PublishedEvent  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  event         PublishedEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
   row           String
   number        Int
-  status        SeatStatus      @default(AVAILABLE)
+  status        SeatStatus     @default(AVAILABLE)
   reservationId String?
-  reservation   Reservation?    @relation(fields: [reservationId], references: [id])
-  createdAt     DateTime        @default(now())
+  reservation   Reservation?   @relation(fields: [reservationId], references: [id])
+  ticket        Ticket?
+  createdAt     DateTime       @default(now())
 
   @@unique([eventId, row, number])
 }
@@ -52,9 +70,32 @@ model Reservation {
   id        String             @id @default(uuid())
   eventId   String
   event     PublishedEvent     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   status    ReservationStatus
   total     Decimal            @db.Decimal(10, 2)
   currency  String
   seats     Seat[]
+  tickets   Ticket[]
   createdAt DateTime           @default(now())
+}
+
+enum TicketStatus {
+  VALID
+  USED
+}
+
+model Ticket {
+  id            String       @id @default(uuid())
+  code          String       @unique
+  shareToken    String       @unique
+  status        TicketStatus @default(VALID)
+  usedAt        DateTime?
+  userId        String
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reservationId String
+  reservation   Reservation  @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  seatId        String       @unique
+  seat          Seat         @relation(fields: [seatId], references: [id], onDelete: Cascade)
+  createdAt     DateTime     @default(now())
 }

@@ -4,6 +4,15 @@ export class ReservedSeatDto {
   number: number;
 }
 
+export class IssuedTicketDto {
+  id: string;
+  code: string;
+  qrPayload: string;
+  qrImage: string;
+  shareToken: string;
+  seat: ReservedSeatDto;
+}
+
 export class ReservationResponseDto {
   id: string;
   status: 'PAID' | 'REFUSED';
@@ -12,5 +21,6 @@ export class ReservationResponseDto {
   total: number;
   currency: string;
   seats: ReservedSeatDto[];
+  tickets: IssuedTicketDto[];
   message: string;
 }

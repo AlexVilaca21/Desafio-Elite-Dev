@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from 'modules/prisma/prisma.service';
+import { TicketsService } from 'modules/tickets/tickets.service';
 import {
   CreateReservationDto,
   PaymentOutcome,
@@ -12,9 +13,15 @@ import { ReservationResponseDto } from './dto/reservation.dto';
 
 @Injectable()
 export class ReservationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly ticketsService: TicketsService,
+  ) {}
 
-  async create(dto: CreateReservationDto): Promise<ReservationResponseDto> {
+  async create(
+    userId: string,
+    dto: CreateReservationDto,
+  ): Promise<ReservationResponseDto> {
     const event = await this.prisma.publishedEvent.findUnique({
       where: { ticketmasterId: dto.eventId },
     });
@@ -46,6 +53,7 @@ export class ReservationsService {
       const reservation = await this.prisma.reservation.create({
         data: {
           eventId: event.id,
+          userId,
           status: 'REFUSED',
           total,
           currency: event.currency,
@@ -64,6 +72,7 @@ export class ReservationsService {
           row: seat.row,
           number: seat.number,
         })),
+        tickets: [],
         message: 'Pagamento recusado. Os lugares continuam disponíveis.',
       };
     }
@@ -72,6 +81,7 @@ export class ReservationsService {
       const created = await tx.reservation.create({
         data: {
           eventId: event.id,
+          userId,
           status: 'PAID',
           total,
           currency: event.currency,
@@ -96,11 +106,33 @@ export class ReservationsService {
         );
       }
 
-      return created;
+      const tickets = await this.ticketsService.createForSeats(tx, {
+        userId,
+        reservationId: created.id,
+        seats,
+      });
+
+      return { created, tickets };
     });
 
+    const ticketDtos = await Promise.all(
+      reservation.tickets.map((ticket) => {
+        const seat = seats.find((item) => item.id === ticket.seatId);
+
+        if (!seat) {
+          throw new NotFoundException('Assento do ingresso não encontrado');
+        }
+
+        return this.ticketsService.toDto({
+          ...ticket,
+          seat,
+          reservation: { event },
+        });
+      }),
+    );
+
     return {
-      id: reservation.id,
+      id: reservation.created.id,
       status: 'PAID',
       eventId: event.ticketmasterId,
       eventName: event.name,
@@ -111,7 +143,15 @@ export class ReservationsService {
         row: seat.row,
         number: seat.number,
       })),
-      message: 'Pagamento confirmado. Seus lugares estão reservados.',
+      tickets: ticketDtos.map((ticket) => ({
+        id: ticket.id,
+        code: ticket.code,
+        qrPayload: ticket.qrPayload,
+        qrImage: ticket.qrImage,
+        shareToken: ticket.shareToken,
+        seat: ticket.seat,
+      })),
+      message: 'Pagamento confirmado. Seus ingressos foram gerados.',
     };
   }
 }
