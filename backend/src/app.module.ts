@@ -1,3 +1,4 @@
+import { join } from 'path';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AttractionsModule } from 'modules/attractions/attractions.module';
@@ -15,7 +16,10 @@ import { VenuesModule } from 'modules/venues/venues.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env',
+      envFilePath: [
+        join(__dirname, '..', '.env'),
+        join(process.cwd(), '.env'),
+      ],
     }),
     PrismaModule,
     UsersModule,

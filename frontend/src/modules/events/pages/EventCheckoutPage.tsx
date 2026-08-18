@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useAuth } from '@/modules/auth/context/AuthContext';
 import {
   createReservation,
   getEventSeating,
@@ -12,6 +13,10 @@ const MAX_SEATS = 6;
 
 export function EventCheckoutPage() {
   const { id } = useParams<{ id: string }>();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { isClient, ready } = useAuth();
+  const loginPath = `/entrar?from=${encodeURIComponent(location.pathname)}`;
   const [seating, setSeating] = useState<EventSeating | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -88,6 +93,11 @@ export function EventCheckoutPage() {
 
   async function pay(paymentOutcome: 'approve' | 'decline') {
     if (!id || selectedIds.length === 0) {
+      return;
+    }
+
+    if (!isClient) {
+      navigate(loginPath);
       return;
     }
 
@@ -230,10 +240,17 @@ export function EventCheckoutPage() {
                 </strong>
               </p>
 
+              {ready && !isClient && (
+                <p className={styles.notice}>
+                  <Link to={loginPath}>Entre como cliente</Link> para pagar e
+                  receber o QR do ingresso.
+                </p>
+              )}
+
               <button
                 type="button"
                 className={styles.pay}
-                disabled={paying || selectedSeats.length === 0}
+                disabled={paying || selectedSeats.length === 0 || !isClient}
                 onClick={() => void pay('approve')}
               >
                 {paying ? 'Processando...' : 'Pagar e confirmar'}
@@ -241,7 +258,7 @@ export function EventCheckoutPage() {
               <button
                 type="button"
                 className={styles.decline}
-                disabled={paying || selectedSeats.length === 0}
+                disabled={paying || selectedSeats.length === 0 || !isClient}
                 onClick={() => void pay('decline')}
               >
                 Simular recusa
@@ -259,6 +276,29 @@ export function EventCheckoutPage() {
                       .map((seat) => `${seat.row}${seat.number}`)
                       .join(', ')}.`}
                 </p>
+              )}
+
+              {result?.status === 'PAID' && result.tickets?.length > 0 && (
+                <div className={styles.issued}>
+                  <p>Seus QRs</p>
+                  <ul>
+                    {result.tickets.map((ticket) => (
+                      <li key={ticket.id}>
+                        <img
+                          src={ticket.qrImage}
+                          alt={`QR ${ticket.code}`}
+                        />
+                        <span>
+                          {ticket.code}
+                          <br />
+                          {ticket.seat.row}
+                          {ticket.seat.number}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                  <Link to="/meus-ingressos">Ver em meus ingressos</Link>
+                </div>
               )}
             </aside>
           </div>

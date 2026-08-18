@@ -81,6 +81,15 @@ export type EventSeating = {
 	availableCount: number;
 };
 
+export type IssuedTicket = {
+	id: string;
+	code: string;
+	qrPayload: string;
+	qrImage: string;
+	shareToken: string;
+	seat: { id: string; row: string; number: number };
+};
+
 export type Reservation = {
 	id: string;
 	status: 'PAID' | 'REFUSED';
@@ -89,6 +98,7 @@ export type Reservation = {
 	total: number;
 	currency: string;
 	seats: Array<{ id: string; row: string; number: number }>;
+	tickets: IssuedTicket[];
 	message: string;
 };
 
