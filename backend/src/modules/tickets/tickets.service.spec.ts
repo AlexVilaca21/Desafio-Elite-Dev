@@ -143,4 +143,21 @@ describe('TicketsService', () => {
 
     expect(result.result).toBe('INVALID');
   });
+
+  it('should verify a signed payload typed as the ticket code', async () => {
+    qrCodeService.verify.mockReturnValue('CODE12');
+    ticket.findUnique
+      .mockResolvedValueOnce(storedTicket)
+      .mockResolvedValueOnce({
+        ...storedTicket,
+        status: TicketStatus.USED,
+        usedAt: new Date('2026-08-17T20:00:00.000Z'),
+      });
+    ticket.updateMany.mockResolvedValue({ count: 1 });
+
+    const result = await service.validate({ code: 'CODE12.signature' });
+
+    expect(qrCodeService.verify).toHaveBeenCalledWith('CODE12.signature');
+    expect(result.result).toBe('VALID');
+  });
 });

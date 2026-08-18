@@ -17,6 +17,14 @@ export function LoginPage() {
   const fromParam = searchParams.get('from') || '/';
   const from = fromParam.startsWith('/') ? fromParam : '/';
 
+  function destination(role: 'ORGANIZER' | 'CLIENT' | 'GATE'): string {
+    if (from !== '/') {
+      return from;
+    }
+
+    return role === 'GATE' ? '/portaria' : '/';
+  }
+
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('cliente@elite.dev');
@@ -30,12 +38,11 @@ export function LoginPage() {
     setError(null);
 
     try {
-      if (mode === 'register') {
-        await register(name, email, password);
-      } else {
-        await login(email, password);
-      }
-      navigate(from, { replace: true });
+      const logged =
+        mode === 'register'
+          ? await register(name, email, password)
+          : await login(email, password);
+      navigate(destination(logged.role), { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Não foi possível entrar');
     } finally {
@@ -48,7 +55,7 @@ export function LoginPage() {
   }
 
   if (user) {
-    return <Navigate to={from} replace />;
+    return <Navigate to={destination(user.role)} replace />;
   }
 
   return (
@@ -68,6 +75,11 @@ export function LoginPage() {
           {from.includes('checkout') && (
             <p className={styles.notice}>
               Entre como cliente para concluir a compra.
+            </p>
+          )}
+          {from.includes('portaria') && (
+            <p className={styles.notice}>
+              Entre com a conta de portaria para conferir os ingressos.
             </p>
           )}
 

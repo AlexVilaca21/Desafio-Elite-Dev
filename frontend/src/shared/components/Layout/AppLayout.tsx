@@ -16,8 +16,14 @@ export function AppLayout() {
   const onTickets =
     location.pathname.startsWith('/meus-ingressos') ||
     location.pathname.startsWith('/ingressos/');
+  const onGate = location.pathname.startsWith('/portaria');
   const ticketsTo =
-    user?.role === 'CLIENT' ? '/meus-ingressos' : '/entrar?from=/meus-ingressos';
+    user?.role === 'CLIENT'
+      ? '/meus-ingressos'
+      : '/entrar?from=/meus-ingressos';
+  const secondaryTo = user?.role === 'GATE' ? '/portaria' : ticketsTo;
+  const secondaryActive = user?.role === 'GATE' ? onGate : onTickets;
+  const secondaryLabel = user?.role === 'GATE' ? 'Portaria' : 'Ingressos';
 
   return (
     <div className={styles.shell}>
@@ -46,6 +52,16 @@ export function AppLayout() {
                 }
               >
                 Meus ingressos
+              </NavLink>
+            )}
+            {user?.role === 'GATE' && (
+              <NavLink
+                to="/portaria"
+                className={({ isActive }) =>
+                  `${styles.link} ${isActive ? styles.active : ''}`
+                }
+              >
+                Portaria
               </NavLink>
             )}
 
@@ -96,13 +112,21 @@ export function AppLayout() {
           Eventos
         </NavLink>
         <NavLink
-          to={ticketsTo}
-          className={`${styles.tab} ${onTickets ? styles.tabActive : ''}`}
+          to={secondaryTo}
+          className={`${styles.tab} ${secondaryActive ? styles.tabActive : ''}`}
         >
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M4 8h16v3a2 2 0 0 0 0 4v3H4v-3a2 2 0 0 0 0-4z" />
-          </svg>
-          Ingressos
+          {user?.role === 'GATE' ? (
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 20V4h10v16" />
+              <path d="M15 20H3" />
+              <path d="M12.5 12h.01" />
+            </svg>
+          ) : (
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 8h16v3a2 2 0 0 0 0 4v3H4v-3a2 2 0 0 0 0-4z" />
+            </svg>
+          )}
+          {secondaryLabel}
         </NavLink>
         {ready && user ? (
           <button type="button" className={styles.tab} onClick={handleLogout}>

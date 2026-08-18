@@ -5,6 +5,7 @@ import { AttractionsModule } from 'modules/attractions/attractions.module';
 import { AuthModule } from 'modules/auth/auth.module';
 import { ClassificationsModule } from 'modules/classifications/classifications.module';
 import { EventsModule } from 'modules/events/events.module';
+import { GateModule } from 'modules/gate/gate.module';
 import { PrismaModule } from 'modules/prisma/prisma.module';
 import { ReservationsModule } from 'modules/reservations/reservations.module';
 import { SuggestModule } from 'modules/suggest/suggest.module';
@@ -27,6 +28,7 @@ import { VenuesModule } from 'modules/venues/venues.module';
     ClassificationsModule,
     SuggestModule,
     TicketsModule,
+    GateModule,
     ReservationsModule,
   ],
 })

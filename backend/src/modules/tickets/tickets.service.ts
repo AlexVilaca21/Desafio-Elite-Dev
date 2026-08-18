@@ -210,15 +210,17 @@ export class TicketsService {
   }
 
   private resolveCode(dto: ValidateTicketDto): string | null {
-    if (dto.qrPayload) {
-      return this.qrCodeService.verify(dto.qrPayload);
+    const raw = (dto.qrPayload ?? dto.code ?? '').trim();
+
+    if (!raw) {
+      return null;
     }
 
-    if (dto.code) {
-      return dto.code.trim().toUpperCase();
+    if (raw.includes('.')) {
+      return this.qrCodeService.verify(raw);
     }
 
-    return null;
+    return raw.toUpperCase();
   }
 
   private async findWithRelations(id: string): Promise<TicketWithRelations> {
