@@ -69,9 +69,15 @@ export class OrganizerService {
       { length: Math.max(maxPages - 1, 0) },
       (_, index) => index + 1,
     );
-    const remaining = await mapWithConcurrency(this.ticketmast    ),
-   );
-   constbatches = [first, ...remaining];
+    const remaining = await mapWithConcurrency(
+      remainingPages,
+      2,
+      (page) =>
+        this.ticketmasterService.searchEvents(
+          this.buildCatalogParams(query, page, size),
+        ),
+    );
+    const batches = [first, ...remaining];
 
     const unique = new Map<string, TicketmasterEvent>();
 

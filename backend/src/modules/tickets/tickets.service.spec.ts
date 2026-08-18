@@ -1,6 +1,6 @@
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Role, TicketStatus } from '@prisma/client';
+import { Role, SeatStatus, TicketStatus } from '@prisma/client';
 import { PrismaService } from 'modules/prisma/prisma.service';
 import { QrCodeService } from './qr-code.service';
 import { TicketsService } from './tickets.service';
@@ -11,9 +11,19 @@ describe('TicketsService', () => {
   const ticket = {
     findMany: jest.fn(),
     findUnique: jest.fn(),
+    findUniqueOrThrow: jest.fn(),
     updateMany: jest.fn(),
     create: jest.fn(),
   };
+
+  const seat = {
+    update: jest.fn(),
+  };
+
+  const $transaction = jest.fn(
+    async (callback: (tx: { ticket: typeof ticket; seat: typeof seat }) => Promise<unknown>) =>
+      callback({ ticket, seat }),
+  );
 
   const qrCodeService = {
     generateCode: jest.fn().mockReturnValue('CODE12'),
@@ -40,7 +50,11 @@ describe('TicketsService', () => {
     shareToken: 'share-token',
     status: TicketStatus.VALID,
     usedAt: null,
+    cancelledAt: null,
     userId: 'user-1',
+    seatId: 'seat-1',
+    seatRow: 'A',
+    seatNumber: 1,
     createdAt: new Date('2026-08-17T12:00:00.000Z'),
     seat: { id: 'seat-1', row: 'A', number: 1 },
     reservation: { event },
@@ -49,8 +63,11 @@ describe('TicketsService', () => {
   beforeEach(async () => {
     ticket.findMany.mockReset();
     ticket.findUnique.mockReset();
+    ticket.findUniqueOrThrow.mockReset();
     ticket.updateMany.mockReset();
     ticket.create.mockReset();
+    seat.update.mockReset();
+    $transaction.mockClear();
     qrCodeService.verify.mockReset();
     qrCodeService.sign.mockClear();
     qrCodeService.toDataUrl.mockClear();
@@ -58,7 +75,7 @@ describe('TicketsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TicketsService,
-        { provide: PrismaService, useValue: { ticket } },
+        { provide: PrismaService, useValue: { ticket, seat, $transaction } },
         { provide: QrCodeService, useValue: qrCodeService },
       ],
     }).compile();
@@ -159,5 +176,74 @@ describe('TicketsService', () => {
 
     expect(qrCodeService.verify).toHaveBeenCalledWith('CODE12.signature');
     expect(result.result).toBe('VALID');
+  });
+
+  it('should cancel a valid ticket and return the seat to stock', async () => {
+    ticket.findUnique.mockResolvedValue(storedTicket);
+    ticket.updateMany.mockResolvedValue({ count: 1 });
+    ticket.findUniqueOrThrow.mockResolvedValue({
+      ...storedTicket,
+      status: TicketStatus.CANCELLED,
+      cancelledAt: new Date('2026-08-18T21:00:00.000Z'),
+      seatId: null,
+      seat: null,
+    });
+
+    const result = await service.cancel('ticket-1', 'user-1');
+
+    expect(ticket.updateMany).toHaveBeenCalledWith({
+      where: { id: 'ticket-1', status: TicketStatus.VALID },
+      data: {
+        status: TicketStatus.CANCELLED,
+        cancelledAt: expect.any(Date),
+        seatId: null,
+      },
+    });
+    expect(seat.update).toHaveBeenCalledWith({
+      where: { id: 'seat-1' },
+      data: { status: SeatStatus.AVAILABLE, reservationId: null },
+    });
+    expect(result.status).toBe(TicketStatus.CANCELLED);
+    expect(result.qrImage).toBe('');
+    expect(result.seat).toEqual({ id: '', row: 'A', number: 1 });
+  });
+
+  it('should not cancel a used ticket', async () => {
+    ticket.findUnique.mockResolvedValue({
+      ...storedTicket,
+      status: TicketStatus.USED,
+    });
+
+    await expect(service.cancel('ticket-1', 'user-1')).rejects.toThrow(
+      BadRequestException,
+    );
+    expect(seat.update).not.toHaveBeenCalled();
+  });
+
+  it('should treat a cancelled ticket as invalid at the gate', async () => {
+    qrCodeService.verify.mockReturnValue('CODE12');
+    ticket.findUnique.mockResolvedValue({
+      ...storedTicket,
+      status: TicketStatus.CANCELLED,
+    });
+
+    const result = await service.validate({ qrPayload: 'CODE12.signature' });
+
+    expect(result.result).toBe('INVALID');
+    expect(result.message).toMatch(/cancelado/i);
+  });
+
+  it('should not cancel a ticket that already was cancelled', async () => {
+    ticket.findUnique.mockResolvedValue({
+      ...storedTicket,
+      status: TicketStatus.CANCELLED,
+      seatId: null,
+      seat: null,
+    });
+
+    await expect(service.cancel('ticket-1', 'user-1')).rejects.toThrow(
+      BadRequestException,
+    );
+    expect(seat.update).not.toHaveBeenCalled();
   });
 });

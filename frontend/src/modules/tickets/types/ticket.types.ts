@@ -1,4 +1,4 @@
-export type TicketStatus = 'VALID' | 'USED';
+export type TicketStatus = 'VALID' | 'USED' | 'CANCELLED';
 
 export type Ticket = {
   id: string;
@@ -8,6 +8,7 @@ export type Ticket = {
   qrImage: string;
   shareToken: string;
   usedAt?: string;
+  cancelledAt?: string;
   createdAt: string;
   event: {
     id: string;

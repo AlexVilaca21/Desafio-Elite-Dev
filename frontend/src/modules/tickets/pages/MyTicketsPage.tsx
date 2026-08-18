@@ -47,7 +47,10 @@ export function MyTicketsPage() {
       <header>
         <p className={styles.kicker}>Carteira</p>
         <h1>Meus ingressos</h1>
-        <p>Mostre o QR na entrada ou compartilhe o ingresso por link.</p>
+        <p>
+          Mostre o QR na entrada, compartilhe o ingresso ou cancele para
+          devolver o lugar ao estoque.
+        </p>
       </header>
 
       {loading && <p className={styles.status}>Carregando seus ingressos...</p>}
@@ -64,7 +67,18 @@ export function MyTicketsPage() {
         <ul className={styles.list}>
           {tickets.map((ticket) => (
             <li key={ticket.id}>
-              <TicketCard ticket={ticket} shareable />
+              <TicketCard
+                ticket={ticket}
+                shareable
+                cancellable
+                onCancelled={(updated) =>
+                  setTickets((current) =>
+                    current.map((item) =>
+                      item.id === updated.id ? updated : item,
+                    ),
+                  )
+                }
+              />
             </li>
           ))}
         </ul>

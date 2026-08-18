@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -8,6 +9,7 @@ import {
   Prisma,
   PublishedEvent,
   Seat,
+  SeatStatus,
   Ticket,
   TicketStatus,
 } from '@prisma/client';
@@ -18,7 +20,7 @@ import { ValidateTicketDto } from './dto/validate-ticket.dto';
 import { QrCodeService } from './qr-code.service';
 
 type TicketWithRelations = Ticket & {
-  seat: Seat;
+  seat: Seat | null;
   reservation: {
     event: PublishedEvent;
   };
@@ -49,6 +51,8 @@ export class TicketsService {
           userId: params.userId,
           reservationId: params.reservationId,
           seatId: seat.id,
+          seatRow: seat.row,
+          seatNumber: seat.number,
         },
       });
 
@@ -104,7 +108,74 @@ export class TicketsService {
       throw new ForbiddenException('Este ingresso não pertence a você');
     }
 
+    if (ticket.status !== TicketStatus.VALID) {
+      throw new BadRequestException(
+        'Só é possível compartilhar um ingresso válido',
+      );
+    }
+
     return { shareToken: ticket.shareToken };
+  }
+
+  async cancel(id: string, userId: string): Promise<TicketResponseDto> {
+    const ticket = await this.findWithRelations(id);
+
+    if (ticket.userId !== userId) {
+      throw new ForbiddenException('Este ingresso não pertence a você');
+    }
+
+    if (ticket.status === TicketStatus.USED) {
+      throw new BadRequestException(
+        'Ingresso já foi usado na portaria e não pode ser cancelado',
+      );
+    }
+
+    if (ticket.status === TicketStatus.CANCELLED) {
+      throw new BadRequestException('Este ingresso já foi cancelado');
+    }
+
+    if (!ticket.seatId) {
+      throw new ConflictException(
+        'Não foi possível devolver o lugar deste ingresso',
+      );
+    }
+
+    const seatId = ticket.seatId;
+
+    const cancelled = await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.ticket.updateMany({
+        where: { id: ticket.id, status: TicketStatus.VALID },
+        data: {
+          status: TicketStatus.CANCELLED,
+          cancelledAt: new Date(),
+          seatId: null,
+        },
+      });
+
+      if (updated.count !== 1) {
+        throw new ConflictException(
+          'Não foi possível cancelar o ingresso. Tente novamente.',
+        );
+      }
+
+      await tx.seat.update({
+        where: { id: seatId },
+        data: {
+          status: SeatStatus.AVAILABLE,
+          reservationId: null,
+        },
+      });
+
+      return tx.ticket.findUniqueOrThrow({
+        where: { id: ticket.id },
+        include: {
+          seat: true,
+          reservation: { include: { event: true } },
+        },
+      });
+    });
+
+    return this.toDto(cancelled);
   }
 
   async validate(dto: ValidateTicketDto): Promise<ValidateTicketResponseDto> {
@@ -148,6 +219,13 @@ export class TicketsService {
       };
     }
 
+    if (ticket.status === TicketStatus.CANCELLED) {
+      return {
+        result: 'INVALID',
+        message: 'Este ingresso foi cancelado',
+      };
+    }
+
     if (ticket.status === TicketStatus.USED) {
       return {
         result: 'ALREADY_USED',
@@ -178,8 +256,11 @@ export class TicketsService {
   }
 
   async toDto(ticket: TicketWithRelations): Promise<TicketResponseDto> {
-    const qrPayload = this.qrCodeService.sign(ticket.code);
-    const qrImage = await this.qrCodeService.toDataUrl(qrPayload);
+    const cancelled = ticket.status === TicketStatus.CANCELLED;
+    const qrPayload = cancelled ? '' : this.qrCodeService.sign(ticket.code);
+    const qrImage = cancelled
+      ? ''
+      : await this.qrCodeService.toDataUrl(qrPayload);
     const event = ticket.reservation.event;
 
     return {
@@ -190,6 +271,7 @@ export class TicketsService {
       qrImage,
       shareToken: ticket.shareToken,
       usedAt: ticket.usedAt?.toISOString(),
+      cancelledAt: ticket.cancelledAt?.toISOString(),
       createdAt: ticket.createdAt.toISOString(),
       event: {
         id: event.ticketmasterId,
@@ -202,9 +284,9 @@ export class TicketsService {
         venueStateCode: event.venueStateCode ?? undefined,
       },
       seat: {
-        id: ticket.seat.id,
-        row: ticket.seat.row,
-        number: ticket.seat.number,
+        id: ticket.seat?.id ?? ticket.seatId ?? '',
+        row: ticket.seatRow,
+        number: ticket.seatNumber,
       },
     };
   }

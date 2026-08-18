@@ -55,7 +55,11 @@ export function SharedTicketPage() {
       <header>
         <p className={styles.kicker}>Convidado</p>
         <h1>Ingresso compartilhado</h1>
-        <p>Este QR vale na entrada do evento.</p>
+        <p>
+          {ticket?.status === 'CANCELLED'
+            ? 'Este ingresso foi cancelado e o lugar voltou ao estoque.'
+            : 'Este QR vale na entrada do evento.'}
+        </p>
       </header>
 
       {loading && <p className={styles.status}>Carregando ingresso...</p>}

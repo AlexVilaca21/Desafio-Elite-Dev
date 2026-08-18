@@ -18,11 +18,12 @@ export class TicketSeatDto {
 export class TicketResponseDto {
   id: string;
   code: string;
-  status: 'VALID' | 'USED';
+  status: 'VALID' | 'USED' | 'CANCELLED';
   qrPayload: string;
   qrImage: string;
   shareToken: string;
   usedAt?: string;
+  cancelledAt?: string;
   createdAt: string;
   event: TicketEventDto;
   seat: TicketSeatDto;

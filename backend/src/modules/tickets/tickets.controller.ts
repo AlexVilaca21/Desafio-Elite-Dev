@@ -42,6 +42,16 @@ export class TicketsController {
     return this.ticketsService.share(id, user.id);
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.CLIENT)
+  @Post(':id/cancel')
+  cancel(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthUser,
+  ): Promise<TicketResponseDto> {
+    return this.ticketsService.cancel(id, user.id);
+  }
+
   @UseGuards(JwtAuthGuard)
   @Get(':id')
   findOne(

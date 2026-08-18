@@ -16,6 +16,7 @@ import { mediaUrl } from '@/shared/utils/media';
 import { getErrorMessage, isAbortError } from '@/shared/api/api-error';
 import { ErrorAlert } from '@/shared/components/Feedback/ErrorAlert';
 import { useDebouncedValue } from '@/shared/hooks/useDebouncedValue';
+import { ConfirmModal } from '@/shared/components/Modal/ConfirmModal';
 import { CatalogSearchModal } from '../components/CatalogSearchModal';
 import {
   listOrganizerEvents,
@@ -34,6 +35,9 @@ export function OrganizerPage() {
     emptyEventFilters({ sort: 'relevance,desc' }),
   );
   const [modalOpen, setModalOpen] = useState(false);
+  const [eventToUnpublish, setEventToUnpublish] = useState<OrganizerEvent | null>(
+    null,
+  );
   const [loadingBoard, setLoadingBoard] = useState(true);
   const [loadingCatalog, setLoadingCatalog] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -105,24 +109,17 @@ export function OrganizerPage() {
     }
   }
 
-  async function handleUnpublish(event: OrganizerEvent) {
-    if (event.soldCount > 0) {
+  async function handleUnpublish() {
+    if (!eventToUnpublish || eventToUnpublish.soldCount > 0) {
       return;
     }
 
-    const confirmed = window.confirm(
-      `Tirar "${event.name}" do cartaz? Os lugares voltam a ficar indisponíveis para compra.`,
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
-    setBusyId(event.id);
+    setBusyId(eventToUnpublish.id);
     setError(null);
 
     try {
-      await unpublishEvent(event.id);
+      await unpublishEvent(eventToUnpublish.id);
+      setEventToUnpublish(null);
       await loadBoard();
     } catch (err) {
       setError(getErrorMessage(err, 'Não foi possível tirar do cartaz.'));
@@ -142,7 +139,7 @@ export function OrganizerPage() {
         </p>
       </header>
 
-      {error && <ErrorAlert>{error}</ErrorAlert>}
+      {error && !eventToUnpublish && <ErrorAlert>{error}</ErrorAlert>}
 
       <section className={styles.board}>
         <div className={styles.boardHead}>
@@ -237,14 +234,18 @@ export function OrganizerPage() {
                     <button
                       type="button"
                       disabled={event.soldCount > 0 || busyId === event.id}
-                      onClick={() => void handleUnpublish(event)}
+                      onClick={() => {
+                        setError(null);
+                        setEventToUnpublish(event);
+                      }}
                     >
                       Tirar do cartaz
                     </button>
                   </div>
                   {event.soldCount > 0 && (
                     <p className={styles.hint}>
-                      Com venda feita, o evento permanece no cartaz.
+                      Com venda feita, o evento permanece no cartaz. O cliente
+                      pode cancelar o ingresso para devolver o lugar.
                     </p>
                   )}
                 </div>
@@ -266,6 +267,28 @@ export function OrganizerPage() {
           setModalOpen(false);
           navigate(`/organizar/novo/${encodeURIComponent(eventId)}`);
         }}
+      />
+
+      <ConfirmModal
+        open={Boolean(eventToUnpublish)}
+        title="Tirar do cartaz?"
+        confirmLabel="Tirar do cartaz"
+        cancelLabel="Manter no cartaz"
+        danger
+        loading={Boolean(eventToUnpublish && busyId === eventToUnpublish.id)}
+        error={error && eventToUnpublish ? error : null}
+        titleId="unpublish-event-modal"
+        onClose={() => {
+          if (!busyId) {
+            setEventToUnpublish(null);
+          }
+        }}
+        onConfirm={() => void handleUnpublish()}
+        description={
+          eventToUnpublish
+            ? `“${eventToUnpublish.name}” sai do cartaz e os lugares deixam de ficar à venda.`
+            : ''
+        }
       />
     </section>
   );

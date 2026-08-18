@@ -84,6 +84,7 @@ model Reservation {
 enum TicketStatus {
   VALID
   USED
+  CANCELLED
 }
 
 model Ticket {
@@ -92,11 +93,14 @@ model Ticket {
   shareToken    String       @unique
   status        TicketStatus @default(VALID)
   usedAt        DateTime?
+  cancelledAt   DateTime?
   userId        String
   user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   reservationId String
   reservation   Reservation  @relation(fields: [reservationId], references: [id], onDelete: Cascade)
-  seatId        String       @unique
-  seat          Seat         @relation(fields: [seatId], references: [id], onDelete: Cascade)
+  seatId        String?      @unique
+  seat          Seat?        @relation(fields: [seatId], references: [id], onDelete: Cascade)
+  seatRow       String
+  seatNumber    Int
   createdAt     DateTime     @default(now())
 }

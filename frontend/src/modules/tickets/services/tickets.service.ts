@@ -14,3 +14,9 @@ export function shareTicket(id: string): Promise<{ shareToken: string }> {
     method: 'POST',
   });
 }
+
+export function cancelTicket(id: string): Promise<Ticket> {
+  return http<Ticket>(`/tickets/${encodeURIComponent(id)}/cancel`, {
+    method: 'POST',
+  });
+}

@@ -1,6 +1,9 @@
+import Typography from '@mui/material/Typography';
 import { useState } from 'react';
 import { formatEventDate } from '@/modules/events/utils/format';
-import { shareTicket } from '../services/tickets.service';
+import { getErrorMessage } from '@/shared/api/api-error';
+import { ConfirmModal } from '@/shared/components/Modal/ConfirmModal';
+import { cancelTicket, shareTicket } from '../services/tickets.service';
 import type { Ticket } from '../types/ticket.types';
 import { QrLightbox } from './QrLightbox';
 import styles from './TicketCard.module.css';
@@ -8,11 +11,34 @@ import styles from './TicketCard.module.css';
 type TicketCardProps = {
   ticket: Ticket;
   shareable?: boolean;
+  cancellable?: boolean;
+  onCancelled?: (ticket: Ticket) => void;
 };
 
-export function TicketCard({ ticket, shareable = false }: TicketCardProps) {
+function statusLabel(status: Ticket['status']): string {
+  if (status === 'USED') {
+    return 'Utilizado';
+  }
+
+  if (status === 'CANCELLED') {
+    return 'Cancelado';
+  }
+
+  return 'Válido';
+}
+
+export function TicketCard({
+  ticket,
+  shareable = false,
+  cancellable = false,
+  onCancelled,
+}: TicketCardProps) {
   const [copied, setCopied] = useState(false);
   const [zoomed, setZoomed] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
+  const cancelled = ticket.status === 'CANCELLED';
   const venue = [
     ticket.event.venueName,
     ticket.event.venueCity,
@@ -42,24 +68,52 @@ export function TicketCard({ ticket, shareable = false }: TicketCardProps) {
     }
   }
 
+  function openCancelConfirm() {
+    setCancelError(null);
+    setConfirmOpen(true);
+  }
+
+  async function handleCancel() {
+    setCancelling(true);
+    setCancelError(null);
+
+    try {
+      const updated = await cancelTicket(ticket.id);
+      setConfirmOpen(false);
+      onCancelled?.(updated);
+    } catch (error) {
+      setCancelError(
+        getErrorMessage(error, 'Não foi possível cancelar o ingresso.'),
+      );
+    } finally {
+      setCancelling(false);
+    }
+  }
+
   return (
     <article
-      className={`${styles.ticket} ${ticket.status === 'USED' ? styles.used : ''}`}
+      className={`${styles.ticket} ${ticket.status !== 'VALID' ? styles.used : ''}`}
     >
       <div className={styles.qr}>
-        <button
-          type="button"
-          className={styles.qrButton}
-          onClick={() => setZoomed(true)}
-          aria-label={`Ampliar QR do ingresso ${ticket.code}`}
-        >
-          <img src={ticket.qrImage} alt={`QR do ingresso ${ticket.code}`} />
-        </button>
+        {cancelled ? (
+          <div className={styles.cancelledMark}>Cancelado</div>
+        ) : ticket.qrImage ? (
+          <button
+            type="button"
+            className={styles.qrButton}
+            onClick={() => setZoomed(true)}
+            aria-label={`Ampliar QR do ingresso ${ticket.code}`}
+          >
+            <img src={ticket.qrImage} alt={`QR do ingresso ${ticket.code}`} />
+          </button>
+        ) : null}
         <p className={styles.code}>{ticket.code}</p>
-        <p className={styles.status}>
-          {ticket.status === 'USED' ? 'Utilizado' : 'Válido'}
+        <p className={`${styles.status} ${cancelled ? styles.cancelled : ''}`}>
+          {statusLabel(ticket.status)}
         </p>
-        <p className={styles.zoomHint}>Toque no QR para ampliar</p>
+        {!cancelled && ticket.qrImage && (
+          <p className={styles.zoomHint}>Toque no QR para ampliar</p>
+        )}
       </div>
 
       <div className={styles.body}>
@@ -80,9 +134,44 @@ export function TicketCard({ ticket, shareable = false }: TicketCardProps) {
             {copied ? 'Link copiado' : 'Compartilhar ingresso'}
           </button>
         )}
+
+        {cancellable && ticket.status === 'VALID' && (
+          <button
+            type="button"
+            className={styles.cancel}
+            disabled={cancelling}
+            onClick={openCancelConfirm}
+          >
+            Cancelar e devolver lugar
+          </button>
+        )}
       </div>
 
-      {zoomed && (
+      <ConfirmModal
+        open={confirmOpen}
+        title="Cancelar este ingresso?"
+        confirmLabel="Cancelar e devolver"
+        cancelLabel="Manter ingresso"
+        danger
+        loading={cancelling}
+        error={cancelError}
+        titleId={`cancel-ticket-${ticket.id}`}
+        onClose={() => {
+          if (!cancelling) {
+            setConfirmOpen(false);
+          }
+        }}
+        onConfirm={() => void handleCancel()}
+        description={
+          <Typography color="text.secondary">
+            O ingresso de <strong>{ticket.event.name}</strong> será cancelado. O
+            lugar Fileira {ticket.seat.row} · Assento {ticket.seat.number} volta
+            para o estoque e o QR deixa de valer na entrada.
+          </Typography>
+        }
+      />
+
+      {zoomed && ticket.qrImage && (
         <QrLightbox
           src={ticket.qrImage}
           code={ticket.code}
