@@ -22,7 +22,11 @@ export function LoginPage() {
       return from;
     }
 
-    return role === 'GATE' ? '/portaria' : '/';
+    return role === 'GATE'
+      ? '/portaria'
+      : role === 'ORGANIZER'
+        ? '/organizar'
+        : '/';
   }
 
   const [mode, setMode] = useState<'login' | 'register'>('login');
@@ -80,6 +84,11 @@ export function LoginPage() {
           {from.includes('portaria') && (
             <p className={styles.notice}>
               Entre com a conta de portaria para conferir os ingressos.
+            </p>
+          )}
+          {from.includes('organizar') && (
+            <p className={styles.notice}>
+              Entre com a conta de organizador para montar o cartaz.
             </p>
           )}
 

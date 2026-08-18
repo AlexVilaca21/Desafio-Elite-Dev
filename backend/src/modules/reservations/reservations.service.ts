@@ -27,9 +27,7 @@ export class ReservationsService {
     });
 
     if (!event) {
-      throw new NotFoundException(
-        'Evento ainda não tem mapa de assentos. Abra a página de compra primeiro.',
-      );
+      throw new NotFoundException('Este evento ainda não está no cartaz');
     }
 
     const uniqueSeatIds = [...new Set(dto.seatIds)];

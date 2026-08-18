@@ -51,3 +51,40 @@ export async function http<T>(
 
 	return response.json() as Promise<T>;
 }
+
+export async function httpForm<T>(
+	path: string,
+	formData: FormData,
+	method: 'POST' | 'PATCH' = 'POST',
+): Promise<T> {
+	const token = getToken();
+
+	const response = await fetch(`${env.apiUrl}${path}`, {
+		method,
+		headers: {
+			...(token ? { Authorization: `Bearer ${token}` } : {}),
+		},
+		body: formData,
+	});
+
+	if (!response.ok) {
+		const text = await response.text();
+		let message = text || `HTTP ${response.status}`;
+
+		try {
+			const parsed = JSON.parse(text) as { message?: string | string[] };
+			if (typeof parsed.message === "string") {
+				message = parsed.message;
+			}
+			if (Array.isArray(parsed.message)) {
+				message = parsed.message.join(", ");
+			}
+		} catch {
+			// keep raw text
+		}
+
+		throw new Error(message);
+	}
+
+	return response.json() as Promise<T>;
+}

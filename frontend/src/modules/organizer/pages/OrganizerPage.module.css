@@ -1,0 +1,257 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.6rem;
+}
+
+.intro h1 {
+  margin: 0.15rem 0 0.45rem;
+  font-size: 1.85rem;
+}
+
+.intro p {
+  margin: 0;
+  max-width: 38rem;
+  color: var(--muted);
+}
+
+.kicker {
+  margin: 0;
+  font-size: 0.74rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--green);
+}
+
+.board,
+.catalog {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.boardHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.boardHead h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.boardHead p {
+  margin: 0.2rem 0 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.create {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.5rem;
+  padding: 0.4rem 0.9rem;
+  border-radius: 999px;
+  background: var(--green);
+  color: #fffdf9;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.status,
+.error,
+.hint {
+  margin: 0;
+}
+
+.error {
+  color: var(--danger);
+}
+
+.hint {
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.flyers {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.flyer {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--paper);
+  box-shadow: var(--shadow);
+}
+
+.flyerCover,
+.placeholder {
+  height: 150px;
+  background: #ece7df;
+}
+
+.flyerCover img,
+.catalogCard img,
+.placeholder {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+}
+
+.placeholder {
+  display: grid;
+  place-items: center;
+  color: #7a7368;
+}
+
+.flyerBody {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.9rem 1rem 1rem;
+}
+
+.flyerBody h3,
+.catalogCard h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.flyerBody p,
+.catalogCard p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.price {
+  color: var(--green) !important;
+  font-weight: 700;
+}
+
+.occupancy {
+  font-weight: 600;
+  color: var(--ink) !important;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 0.55rem;
+}
+
+.actions a,
+.actions button,
+.publish {
+  min-height: 2.5rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: 999px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.actions a,
+.publish {
+  display: inline-flex;
+  align-items: center;
+  background: var(--green);
+  color: #fffdf9;
+  text-decoration: none;
+  border: none;
+}
+
+.actions button {
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+}
+
+.actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.search {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--paper);
+}
+
+.search input {
+  flex: 1 1 16rem;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.search button {
+  padding: 0.55rem 0.95rem;
+  border: none;
+  border-radius: 8px;
+  background: var(--green);
+  color: #fff;
+  cursor: pointer;
+}
+
+.catalogList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.catalogCard {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 0.9rem;
+  padding: 0.7rem;
+  border: 1px dashed var(--line);
+  border-radius: 14px;
+  background: rgba(255, 253, 249, 0.8);
+}
+
+.catalogCard img,
+.catalogCard .placeholder {
+  height: 88px;
+  border-radius: 8px;
+}
+
+.publish {
+  margin-top: 0.55rem;
+}
+
+@media (max-width: 720px) {
+  .intro h1 {
+    font-size: 1.55rem;
+  }
+
+  .create,
+  .search,
+  .search input,
+  .search button,
+  .publish,
+  .actions a,
+  .actions button {
+    width: 100%;
+  }
+
+  .catalogCard {
+    grid-template-columns: 1fr;
+  }
+}

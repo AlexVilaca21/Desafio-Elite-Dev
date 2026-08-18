@@ -9,6 +9,7 @@ import {
   formatStartingPrice,
   formatVenue,
 } from '../utils/format';
+import { mediaUrl } from '@/shared/utils/media';
 import styles from './EventsListPage.module.css';
 
 const PAGE_SIZE = 12;
@@ -75,7 +76,7 @@ export function EventsListPage() {
         <div>
           <p className={styles.kicker}>Cartaz</p>
           <h1>Eventos</h1>
-          <p>Busque o evento e escolha os lugares no mapa para comprar</p>
+          <p>Só entra no cartaz o que o organizador publicou, com data, local e preço</p>
         </div>
 
         <form className={styles.search} onSubmit={handleSubmit}>
@@ -116,7 +117,9 @@ export function EventsListPage() {
 
       {!loading && !error && events.length === 0 && (
         <p className={styles.status}>
-          Nenhum evento encontrado. Tente outro estado, cidade ou palavra-chave.
+          {keyword || stateCode || city
+            ? 'Nenhum evento encontrado. Tente outro estado, cidade ou palavra-chave.'
+            : 'Ainda não há eventos no cartaz. O organizador publica a partir do catálogo.'}
         </p>
       )}
 
@@ -135,8 +138,8 @@ export function EventsListPage() {
                     className={styles.card}
                   >
                     <div className={styles.cover}>
-                      {item.imageUrl ? (
-                        <img src={item.imageUrl} alt="" />
+                      {mediaUrl(item.imageUrl) ? (
+                        <img src={mediaUrl(item.imageUrl)} alt="" />
                       ) : (
                         <div className={styles.placeholder}>Sem imagem</div>
                       )}

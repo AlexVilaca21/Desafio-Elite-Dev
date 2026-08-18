@@ -7,6 +7,8 @@ import {
   EventDetailPage,
   EventsListPage,
 } from '@/modules/events';
+import { OrganizerComposePage } from '@/modules/organizer/pages/OrganizerComposePage';
+import { OrganizerPage } from '@/modules/organizer/pages/OrganizerPage';
 import { GatePage } from '@/modules/gate/pages/GatePage';
 import { MyTicketsPage } from '@/modules/tickets/pages/MyTicketsPage';
 import { SharedTicketPage } from '@/modules/tickets/pages/SharedTicketPage';
@@ -22,6 +24,38 @@ export function AppRoutes() {
             <Route path="entrar" element={<LoginPage />} />
             <Route path="events/:id" element={<EventDetailPage />} />
             <Route path="events/:id/checkout" element={<EventCheckoutPage />} />
+            <Route
+              path="organizar"
+              element={
+                <RequireAuth roles={['ORGANIZER']}>
+                  <OrganizerPage />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="organizar/novo"
+              element={
+                <RequireAuth roles={['ORGANIZER']}>
+                  <OrganizerComposePage />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="organizar/novo/:catalogId"
+              element={
+                <RequireAuth roles={['ORGANIZER']}>
+                  <OrganizerComposePage />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="organizar/:eventId/editar"
+              element={
+                <RequireAuth roles={['ORGANIZER']}>
+                  <OrganizerComposePage />
+                </RequireAuth>
+              }
+            />
             <Route
               path="portaria"
               element={

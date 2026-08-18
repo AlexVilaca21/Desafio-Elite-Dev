@@ -1,9 +1,11 @@
 import { PrismaClient, Role } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
+import { buildSeatLayout } from '../src/modules/shared/utils/seat-layout';
 
 const prisma = new PrismaClient();
 
 const SEED_PASSWORD = 'senha123';
+const SEED_EVENT_ID = 'seed-noite-elite';
 
 const users: Array<{ name: string; email: string; role: Role }> = [
   {
@@ -44,6 +46,29 @@ async function main(): Promise<void> {
         email: user.email,
         role: user.role,
         passwordHash,
+      },
+    });
+  }
+
+  const existing = await prisma.publishedEvent.findUnique({
+    where: { ticketmasterId: SEED_EVENT_ID },
+  });
+
+  if (!existing) {
+    await prisma.publishedEvent.create({
+      data: {
+        ticketmasterId: SEED_EVENT_ID,
+        name: 'Noite Elite — Rock na Arena',
+        startDate: '2026-09-18',
+        startTime: '21:00:00',
+        venueName: 'Arena Elite',
+        venueCity: 'São Paulo',
+        venueStateCode: 'SP',
+        currency: 'BRL',
+        unitPrice: 150,
+        seats: {
+          create: buildSeatLayout(96),
+        },
       },
     });
   }

@@ -1,3 +1,4 @@
+import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from 'modules/prisma/prisma.service';
 import { TicketmasterService } from 'modules/service/ticketmaster/ticketmaster.service';
@@ -7,64 +8,39 @@ import { EventsService } from './events.service';
 describe('EventsService', () => {
   let service: EventsService;
 
-  const mockSearchResponse = {
-    _embedded: {
-      events: [
-        {
-          id: 'event-1',
-          name: 'Rock Show',
-          url: 'https://ticketmaster.com/event-1',
-          images: [
-            {
-              url: 'https://example.com/image.jpg',
-              ratio: '16_9',
-              fallback: false,
-            },
-          ],
-          dates: {
-            start: { localDate: '2026-09-01', localTime: '20:00:00' },
-            timezone: 'America/Sao_Paulo',
-            status: { code: 'onsale' },
-          },
-          classifications: [
-            {
-              primary: true,
-              segment: { id: '1', name: 'Music' },
-              genre: { id: '2', name: 'Rock' },
-            },
-          ],
-          priceRanges: [
-            { type: 'standard', currency: 'BRL', min: 80, max: 180 },
-          ],
-          _embedded: {
-            venues: [
-              {
-                id: 'venue-1',
-                name: 'Arena',
-                city: { name: 'São Paulo' },
-                state: { name: 'São Paulo', stateCode: 'SP' },
-                country: { name: 'Brazil', countryCode: 'BR' },
-              },
-            ],
-            attractions: [{ id: 'attr-1', name: 'Band X' }],
-          },
-        },
-      ],
-    },
-    page: {
-      size: 20,
-      totalElements: 1,
-      totalPages: 1,
-      number: 0,
-    },
+  const published = {
+    id: 'pub-1',
+    ticketmasterId: 'event-1',
+    name: 'Rock Show',
+    imageUrl: 'https://example.com/image.jpg',
+    description: null,
+    startDate: '2026-09-01',
+    startTime: '20:00:00',
+    venueName: 'Arena',
+    venueCity: 'São Paulo',
+    venueStateCode: 'SP',
+    currency: 'BRL',
+    unitPrice: 150,
   };
 
-  const searchEvents = jest.fn();
+  const publishedEvent = {
+    findUnique: jest.fn(),
+    findMany: jest.fn(),
+    count: jest.fn(),
+  };
+
+  const seat = {
+    findMany: jest.fn(),
+  };
+
   const getEventById = jest.fn();
   const getEventImages = jest.fn();
 
   beforeEach(async () => {
-    searchEvents.mockReset();
+    publishedEvent.findUnique.mockReset();
+    publishedEvent.findMany.mockReset();
+    publishedEvent.count.mockReset();
+    seat.findMany.mockReset();
     getEventById.mockReset();
     getEventImages.mockReset();
 
@@ -74,7 +50,6 @@ describe('EventsService', () => {
         {
           provide: TicketmasterService,
           useValue: {
-            searchEvents,
             getEventById,
             getEventImages,
           },
@@ -82,14 +57,8 @@ describe('EventsService', () => {
         {
           provide: PrismaService,
           useValue: {
-            publishedEvent: {
-              findUnique: jest.fn(),
-              findMany: jest.fn().mockResolvedValue([]),
-              create: jest.fn(),
-            },
-            seat: {
-              findMany: jest.fn(),
-            },
+            publishedEvent,
+            seat,
           },
         },
       ],
@@ -99,8 +68,9 @@ describe('EventsService', () => {
   });
 
   describe('searchEvents', () => {
-    it('should return mapped events from Ticketmaster', async () => {
-      searchEvents.mockResolvedValue(mockSearchResponse);
+    it('should return published events from the local cartaz', async () => {
+      publishedEvent.count.mockResolvedValue(1);
+      publishedEvent.findMany.mockResolvedValue([published]);
 
       const query: SearchEventsQueryDto = {
         keyword: 'rock',
@@ -109,121 +79,83 @@ describe('EventsService', () => {
       };
       const result = await service.searchEvents(query);
 
-      expect(searchEvents).toHaveBeenCalledWith(
+      expect(publishedEvent.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          keyword: 'rock',
-          countryCode: 'BR',
-          size: 20,
-          page: 0,
+          where: {
+            AND: [
+              {
+                OR: [
+                  { name: { contains: 'rock', mode: 'insensitive' } },
+                  { venueName: { contains: 'rock', mode: 'insensitive' } },
+                ],
+              },
+            ],
+          },
         }),
       );
-
       expect(result.events).toHaveLength(1);
       expect(result.events[0]).toMatchObject({
         id: 'event-1',
         name: 'Rock Show',
-        imageUrl: 'https://example.com/image.jpg',
         startDate: '2026-09-01',
-        attractions: ['Band X'],
-      });
-      expect(result.events[0].venue).toMatchObject({
-        name: 'Arena',
-        city: 'São Paulo',
       });
       expect(result.events[0].priceRanges).toEqual([
-        { type: 'standard', currency: 'BRL', min: 80, max: 180 },
+        { type: 'standard', currency: 'BRL', min: 150, max: 150 },
       ]);
       expect(result.page.totalElements).toBe(1);
     });
 
-    it('should use catalog price when Ticketmaster omits priceRanges', async () => {
-      const [event] = mockSearchResponse._embedded.events;
-      searchEvents.mockResolvedValue({
-        ...mockSearchResponse,
-        _embedded: {
-          events: [
-            {
-              id: event.id,
-              name: event.name,
-              url: event.url,
-              images: event.images,
-              dates: event.dates,
-              classifications: event.classifications,
-              _embedded: event._embedded,
-            },
-          ],
-        },
-      });
-
-      const result = await service.searchEvents({
-        page: 0,
-        size: 20,
-      });
-
-      expect(result.events[0].priceRanges).toHaveLength(1);
-      expect(result.events[0].priceRanges[0].currency).toBe('BRL');
-      expect(result.events[0].priceRanges[0].min).toBeGreaterThan(0);
-    });
-
-    it('should search events by state', async () => {
-      searchEvents.mockResolvedValue(mockSearchResponse);
+    it('should filter published events by state', async () => {
+      publishedEvent.count.mockResolvedValue(0);
+      publishedEvent.findMany.mockResolvedValue([]);
 
       await service.searchEvents({
         stateCode: 'SP',
-        countryCode: 'BR',
         page: 0,
         size: 20,
       });
 
-      expect(searchEvents).toHaveBeenCalledWith(
+      expect(publishedEvent.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          stateCode: 'SP',
-          countryCode: 'BR',
-        }),
-      );
-    });
-
-    it('should skip default country when searching by venue', async () => {
-      searchEvents.mockResolvedValue(mockSearchResponse);
-
-      await service.searchEvents({
-        venueId: 'venue-1',
-        page: 0,
-        size: 20,
-      });
-
-      expect(searchEvents).toHaveBeenCalledWith(
-        expect.not.objectContaining({
-          countryCode: 'BR',
-        }),
-      );
-      expect(searchEvents).toHaveBeenCalledWith(
-        expect.objectContaining({
-          venueId: 'venue-1',
+          where: {
+            AND: [{ venueStateCode: 'SP' }],
+          },
         }),
       );
     });
   });
 
   describe('getEventById', () => {
-    it('should return event details', async () => {
-      const eventDetail = {
-        ...mockSearchResponse._embedded.events[0],
-        description: 'A great show',
-        priceRanges: [
-          { type: 'standard', currency: 'BRL', min: 100, max: 300 },
-        ],
-      };
-
-      getEventById.mockResolvedValue(eventDetail);
+    it('should return a published event even if Ticketmaster is unavailable', async () => {
+      publishedEvent.findUnique.mockResolvedValue(published);
+      getEventById.mockRejectedValue(new Error('network'));
 
       const result = await service.getEventById('event-1');
 
-      expect(getEventById).toHaveBeenCalledWith('event-1');
-      expect(result.description).toBe('A great show');
-      expect(result.priceRanges).toEqual([
-        { type: 'standard', currency: 'BRL', min: 100, max: 300 },
+      expect(result.name).toBe('Rock Show');
+      expect(result.priceRanges[0].min).toBe(150);
+    });
+
+    it('should hide unpublished catalog events from clients', async () => {
+      publishedEvent.findUnique.mockResolvedValue(null);
+
+      await expect(service.getEventById('event-1')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
+  describe('getEventSeating', () => {
+    it('should load seats only for published events', async () => {
+      publishedEvent.findUnique.mockResolvedValue(published);
+      seat.findMany.mockResolvedValue([
+        { id: 's1', row: 'A', number: 1, status: 'AVAILABLE' },
       ]);
+
+      const result = await service.getEventSeating('event-1');
+
+      expect(result.availableCount).toBe(1);
+      expect(result.event.unitPrice).toBe(150);
     });
   });
 

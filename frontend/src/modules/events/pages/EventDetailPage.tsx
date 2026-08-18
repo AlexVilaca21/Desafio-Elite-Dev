@@ -8,6 +8,7 @@ import {
   formatPriceRange,
   formatStartingPrice,
 } from '../utils/format';
+import { mediaUrl } from '@/shared/utils/media';
 import styles from './EventDetailPage.module.css';
 
 export function EventDetailPage() {
@@ -67,8 +68,8 @@ export function EventDetailPage() {
       {!loading && !error && event && (
         <article>
           <div className={styles.hero}>
-            {event.imageUrl ? (
-              <img src={event.imageUrl} alt="" className={styles.cover} />
+            {mediaUrl(event.imageUrl) ? (
+              <img src={mediaUrl(event.imageUrl)} alt="" className={styles.cover} />
             ) : (
               <div className={styles.placeholder}>Sem imagem</div>
             )}

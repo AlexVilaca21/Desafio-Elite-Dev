@@ -17,13 +17,29 @@ export function AppLayout() {
     location.pathname.startsWith('/meus-ingressos') ||
     location.pathname.startsWith('/ingressos/');
   const onGate = location.pathname.startsWith('/portaria');
+  const onOrganize = location.pathname.startsWith('/organizar');
   const ticketsTo =
     user?.role === 'CLIENT'
       ? '/meus-ingressos'
       : '/entrar?from=/meus-ingressos';
-  const secondaryTo = user?.role === 'GATE' ? '/portaria' : ticketsTo;
-  const secondaryActive = user?.role === 'GATE' ? onGate : onTickets;
-  const secondaryLabel = user?.role === 'GATE' ? 'Portaria' : 'Ingressos';
+  const secondaryTo =
+    user?.role === 'GATE'
+      ? '/portaria'
+      : user?.role === 'ORGANIZER'
+        ? '/organizar'
+        : ticketsTo;
+  const secondaryActive =
+    user?.role === 'GATE'
+      ? onGate
+      : user?.role === 'ORGANIZER'
+        ? onOrganize
+        : onTickets;
+  const secondaryLabel =
+    user?.role === 'GATE'
+      ? 'Portaria'
+      : user?.role === 'ORGANIZER'
+        ? 'Cartaz'
+        : 'Ingressos';
 
   return (
     <div className={styles.shell}>
@@ -62,6 +78,16 @@ export function AppLayout() {
                 }
               >
                 Portaria
+              </NavLink>
+            )}
+            {user?.role === 'ORGANIZER' && (
+              <NavLink
+                to="/organizar"
+                className={({ isActive }) =>
+                  `${styles.link} ${isActive ? styles.active : ''}`
+                }
+              >
+                Cartaz
               </NavLink>
             )}
 
@@ -115,7 +141,12 @@ export function AppLayout() {
           to={secondaryTo}
           className={`${styles.tab} ${secondaryActive ? styles.tabActive : ''}`}
         >
-          {user?.role === 'GATE' ? (
+          {user?.role === 'ORGANIZER' ? (
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 4h12v16H6z" />
+              <path d="M9 8h6M9 12h6M9 16h3" />
+            </svg>
+          ) : user?.role === 'GATE' ? (
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M5 20V4h10v16" />
               <path d="M15 20H3" />

@@ -36,6 +36,7 @@ model PublishedEvent {
   venueStateCode String?
   currency       String         @default("BRL")
   unitPrice      Decimal        @db.Decimal(10, 2)
+  description    String?
   seats          Seat[]
   reservations   Reservation[]
   createdAt      DateTime       @default(now())

@@ -1,23 +1,17 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from 'modules/prisma/prisma.service';
 import { TicketmasterService } from 'modules/service/ticketmaster/ticketmaster.service';
-import { TicketmasterEvent } from 'modules/service/ticketmaster/interfaces/ticketmaster.interface';
-import { compactParams } from 'modules/shared/utils/compact-params';
-import { catalogUnitPrice } from 'modules/shared/utils/catalog-price';
-import { buildSeatLayout } from 'modules/shared/utils/seat-layout';
-import {
-  mapEventSummary,
-  mapPage,
-} from 'modules/shared/utils/ticketmaster.mapper';
+import { mapEventSummary } from 'modules/shared/utils/ticketmaster.mapper';
+import { isCustomEventId } from 'modules/shared/utils/event-id';
 import {
   EventDetailDto,
   EventImagesDto,
-  EventPriceRangeDto,
-  EventSummaryDto,
   EventsSearchResponseDto,
 } from './dto/event.dto';
 import { SearchEventsQueryDto } from './dto/search-events-query.dto';
 import { EventSeatingDto } from './dto/seating.dto';
+import { mapPublishedToSummary } from './published-event.mapper';
 
 @Injectable()
 export class EventsService {
@@ -29,52 +23,78 @@ export class EventsService {
   async searchEvents(
     query: SearchEventsQueryDto,
   ): Promise<EventsSearchResponseDto> {
-    const response = await this.ticketmasterService.searchEvents(
-      this.buildSearchParams(query),
-    );
-
-    const events = response._embedded?.events ?? [];
-    const published = await this.prisma.publishedEvent.findMany({
-      where: { ticketmasterId: { in: events.map((event) => event.id) } },
-      select: { ticketmasterId: true, unitPrice: true, currency: true },
-    });
-    const publishedById = new Map(
-      published.map((item) => [item.ticketmasterId, item]),
-    );
+    const size = query.size ?? 20;
+    const page = query.page ?? 0;
+    const where = this.buildPublishedWhere(query);
+    const [totalElements, events] = await Promise.all([
+      this.prisma.publishedEvent.count({ where }),
+      this.prisma.publishedEvent.findMany({
+        where,
+        skip: page * size,
+        take: size,
+        orderBy: [{ startDate: 'asc' }, { name: 'asc' }],
+      }),
+    ]);
 
     return {
-      events: events.map((event) =>
-        this.withCatalogPrice(event, publishedById.get(event.id)),
-      ),
-      page: mapPage(response.page, {
-        size: query.size ?? 20,
-        number: query.page ?? 0,
-        totalElements: events.length,
-      }),
+      events: events.map((event) => mapPublishedToSummary(event)),
+      page: {
+        size,
+        number: page,
+        totalElements,
+        totalPages: Math.max(1, Math.ceil(totalElements / size)),
+      },
     };
   }
 
   async getEventById(id: string): Promise<EventDetailDto> {
-    const response = await this.ticketmasterService.getEventById(id);
     const published = await this.prisma.publishedEvent.findUnique({
       where: { ticketmasterId: id },
-      select: { unitPrice: true, currency: true },
     });
 
-    return {
-      ...this.withCatalogPrice(response, published ?? undefined),
-      description: response.description,
-      info: response.info,
-      pleaseNote: response.pleaseNote,
-      seatmapUrl: response.seatmap?.staticUrl,
-      dateTBA: response.dates?.start?.dateTBA,
-      dateTBD: response.dates?.start?.dateTBD,
+    if (!published) {
+      throw new NotFoundException('Este evento ainda não está no cartaz');
+    }
+
+    const summary = {
+      ...mapPublishedToSummary(published),
+      description: published.description ?? undefined,
     };
+
+    if (isCustomEventId(id)) {
+      return summary;
+    }
+
+    try {
+      const remote = await this.ticketmasterService.getEventById(id);
+      const mapped = mapEventSummary(remote);
+
+      return {
+        ...summary,
+        url: mapped.url,
+        description: published.description ?? remote.description,
+        info: remote.info,
+        pleaseNote: remote.pleaseNote,
+        seatmapUrl: remote.seatmap?.staticUrl,
+        dateTBA: remote.dates?.start?.dateTBA,
+        dateTBD: remote.dates?.start?.dateTBD,
+        classification: mapped.classification,
+        attractions: mapped.attractions,
+      };
+    } catch {
+      return summary;
+    }
   }
 
   async getEventSeating(id: string): Promise<EventSeatingDto> {
-    const ticketmasterEvent = await this.ticketmasterService.getEventById(id);
-    const published = await this.ensurePublishedEvent(ticketmasterEvent);
+    const published = await this.prisma.publishedEvent.findUnique({
+      where: { ticketmasterId: id },
+    });
+
+    if (!published) {
+      throw new NotFoundException('Este evento ainda não está no cartaz');
+    }
+
     const seats = await this.prisma.seat.findMany({
       where: { eventId: published.id },
       orderBy: [{ row: 'asc' }, { number: 'asc' }],
@@ -129,91 +149,34 @@ export class EventsService {
     };
   }
 
-  private buildSearchParams(
+  private buildPublishedWhere(
     query: SearchEventsQueryDto,
-  ): Record<string, string | number> {
-    const scopedByEntity = Boolean(query.venueId || query.attractionId);
+  ): Prisma.PublishedEventWhereInput {
+    const filters: Prisma.PublishedEventWhereInput[] = [];
 
-    return compactParams({
-      size: query.size ?? 20,
-      page: query.page ?? 0,
-      sort: query.sort ?? 'relevance,desc',
-      countryCode: scopedByEntity
-        ? query.countryCode
-        : (query.countryCode ?? 'BR'),
-      keyword: query.keyword,
-      city: query.city,
-      stateCode: query.stateCode,
-      venueId: query.venueId,
-      attractionId: query.attractionId,
-      classificationName: query.classificationName,
-      startDateTime: query.startDateTime,
-      endDateTime: query.endDateTime,
-    });
-  }
-
-  private async ensurePublishedEvent(event: TicketmasterEvent) {
-    const existing = await this.prisma.publishedEvent.findUnique({
-      where: { ticketmasterId: event.id },
-    });
-
-    if (existing) {
-      return existing;
+    if (query.keyword) {
+      filters.push({
+        OR: [
+          { name: { contains: query.keyword, mode: 'insensitive' } },
+          { venueName: { contains: query.keyword, mode: 'insensitive' } },
+        ],
+      });
     }
 
-    const venue = event._embedded?.venues?.[0];
-    const fromApi = event.priceRanges?.[0];
-    const fallback = catalogUnitPrice(event.id);
-
-    return this.prisma.publishedEvent.create({
-      data: {
-        ticketmasterId: event.id,
-        name: event.name,
-        imageUrl: mapEventSummary(event).imageUrl,
-        startDate: event.dates?.start?.localDate,
-        startTime: event.dates?.start?.localTime,
-        venueName: venue?.name,
-        venueCity: venue?.city?.name,
-        venueStateCode: venue?.state?.stateCode,
-        currency: fromApi?.currency ?? fallback.currency,
-        unitPrice: fromApi?.min ?? fallback.unitPrice,
-        seats: {
-          create: buildSeatLayout(),
-        },
-      },
-    });
-  }
-
-  private withCatalogPrice(
-    event: TicketmasterEvent,
-    published?: {
-      unitPrice: { toString(): string } | number;
-      currency: string;
-    },
-  ): EventSummaryDto {
-    const summary = mapEventSummary(event);
-
-    if (summary.priceRanges.length) {
-      return summary;
+    if (query.city) {
+      filters.push({
+        venueCity: { contains: query.city, mode: 'insensitive' },
+      });
     }
 
-    const fallback = published
-      ? {
-          currency: published.currency,
-          unitPrice: Number(published.unitPrice),
-        }
-      : catalogUnitPrice(event.id);
+    if (query.stateCode) {
+      filters.push({ venueStateCode: query.stateCode });
+    }
 
-    const price: EventPriceRangeDto = {
-      type: 'standard',
-      currency: fallback.currency,
-      min: fallback.unitPrice,
-      max: fallback.unitPrice,
-    };
+    if (!filters.length) {
+      return {};
+    }
 
-    return {
-      ...summary,
-      priceRanges: [price],
-    };
+    return { AND: filters };
   }
 }
