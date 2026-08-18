@@ -37,6 +37,7 @@ export type EventSummary = {
 	status?: string;
 	venue?: EventVenue;
 	classification?: EventClassification;
+	priceRanges: EventPriceRange[];
 	attractions: string[];
 };
 
@@ -44,7 +45,6 @@ export type EventDetail = EventSummary & {
 	description?: string;
 	info?: string;
 	pleaseNote?: string;
-	priceRanges?: EventPriceRange[];
 	seatmapUrl?: string;
 	dateTBA?: boolean;
 	dateTBD?: boolean;

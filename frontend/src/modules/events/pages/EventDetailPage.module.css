@@ -6,7 +6,7 @@
 
 .back {
   width: fit-content;
-  color: #0f3d2e;
+  color: var(--green);
   text-decoration: none;
   font-weight: 600;
 }
@@ -17,18 +17,22 @@
 }
 
 .status {
-  color: #5c564e;
+  color: var(--muted);
 }
 
 .error {
-  color: #8b1e1e;
+  color: var(--danger);
 }
 
 .hero {
   display: grid;
   grid-template-columns: minmax(220px, 360px) 1fr;
-  gap: 1.5rem;
+  gap: 1.4rem;
   align-items: start;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--paper);
 }
 
 .cover,
@@ -36,8 +40,7 @@
   width: 100%;
   height: 240px;
   object-fit: cover;
-  border-radius: 10px;
-  border: 1px solid #ddd6cc;
+  border-radius: 12px;
 }
 
 .placeholder {
@@ -51,31 +54,45 @@
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
+  padding: 0.35rem 0.2rem 0 0;
+}
+
+.kicker {
+  margin: 0;
+  font-size: 0.74rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--green);
 }
 
 .badge,
 .attractions {
-  color: #0f3d2e;
+  color: var(--green);
   font-weight: 600;
 }
 
 .cta {
   width: fit-content;
-  margin-top: 0.5rem;
-  padding: 0.55rem 0.9rem;
-  border-radius: 6px;
-  background: #0f3d2e;
+  margin-top: 0.7rem;
+  padding: 0.6rem 1rem;
+  border-radius: 999px;
+  background: var(--green);
   color: #fff;
   text-decoration: none;
+  font-weight: 600;
+}
+
+.cta:hover {
+  background: #0c3226;
 }
 
 .block {
-  margin-top: 1.5rem;
+  margin-top: 1.35rem;
 }
 
 .block h2 {
   margin: 0 0 0.4rem;
-  font-size: 1.1rem;
+  font-size: 1.15rem;
 }
 
 .prices {
@@ -85,12 +102,26 @@
 
 .seatmap {
   max-width: 100%;
-  border-radius: 10px;
-  border: 1px solid #ddd6cc;
+  border-radius: 12px;
+  border: 1px solid var(--line);
 }
 
 @media (max-width: 720px) {
   .hero {
     grid-template-columns: 1fr;
+    padding: 0.8rem;
+  }
+
+  .cover,
+  .placeholder {
+    height: 200px;
+  }
+
+  .cta {
+    width: 100%;
+    text-align: center;
+    min-height: 48px;
+    display: grid;
+    place-items: center;
   }
 }

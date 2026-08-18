@@ -33,6 +33,9 @@ describe('EventsService', () => {
               genre: { id: '2', name: 'Rock' },
             },
           ],
+          priceRanges: [
+            { type: 'standard', currency: 'BRL', min: 80, max: 180 },
+          ],
           _embedded: {
             venues: [
               {
@@ -81,6 +84,7 @@ describe('EventsService', () => {
           useValue: {
             publishedEvent: {
               findUnique: jest.fn(),
+              findMany: jest.fn().mockResolvedValue([]),
               create: jest.fn(),
             },
             seat: {
@@ -126,7 +130,39 @@ describe('EventsService', () => {
         name: 'Arena',
         city: 'São Paulo',
       });
+      expect(result.events[0].priceRanges).toEqual([
+        { type: 'standard', currency: 'BRL', min: 80, max: 180 },
+      ]);
       expect(result.page.totalElements).toBe(1);
+    });
+
+    it('should use catalog price when Ticketmaster omits priceRanges', async () => {
+      const [event] = mockSearchResponse._embedded.events;
+      searchEvents.mockResolvedValue({
+        ...mockSearchResponse,
+        _embedded: {
+          events: [
+            {
+              id: event.id,
+              name: event.name,
+              url: event.url,
+              images: event.images,
+              dates: event.dates,
+              classifications: event.classifications,
+              _embedded: event._embedded,
+            },
+          ],
+        },
+      });
+
+      const result = await service.searchEvents({
+        page: 0,
+        size: 20,
+      });
+
+      expect(result.events[0].priceRanges).toHaveLength(1);
+      expect(result.events[0].priceRanges[0].currency).toBe('BRL');
+      expect(result.events[0].priceRanges[0].min).toBeGreaterThan(0);
     });
 
     it('should search events by state', async () => {

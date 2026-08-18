@@ -1,11 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/modules/auth/context/AuthContext';
+import { QrLightbox } from '@/modules/tickets/components/QrLightbox';
 import {
   createReservation,
   getEventSeating,
 } from '../services/events.service';
-import type { EventSeating, Reservation, Seat } from '../types/event.types';
+import type {
+  EventSeating,
+  IssuedTicket,
+  Reservation,
+  Seat,
+} from '../types/event.types';
 import { formatEventDate, formatMoney } from '../utils/format';
 import styles from './EventCheckoutPage.module.css';
 
@@ -23,6 +29,7 @@ export function EventCheckoutPage() {
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<Reservation | null>(null);
+  const [zoomedTicket, setZoomedTicket] = useState<IssuedTicket | null>(null);
 
   async function loadSeating(eventId: string, silent = false) {
     if (!silent) {
@@ -247,22 +254,24 @@ export function EventCheckoutPage() {
                 </p>
               )}
 
-              <button
-                type="button"
-                className={styles.pay}
-                disabled={paying || selectedSeats.length === 0 || !isClient}
-                onClick={() => void pay('approve')}
-              >
-                {paying ? 'Processando...' : 'Pagar e confirmar'}
-              </button>
-              <button
-                type="button"
-                className={styles.decline}
-                disabled={paying || selectedSeats.length === 0 || !isClient}
-                onClick={() => void pay('decline')}
-              >
-                Simular recusa
-              </button>
+              <div className={styles.actions}>
+                <button
+                  type="button"
+                  className={styles.pay}
+                  disabled={paying || selectedSeats.length === 0 || !isClient}
+                  onClick={() => void pay('approve')}
+                >
+                  {paying ? 'Processando...' : 'Pagar e confirmar'}
+                </button>
+                <button
+                  type="button"
+                  className={styles.decline}
+                  disabled={paying || selectedSeats.length === 0 || !isClient}
+                  onClick={() => void pay('decline')}
+                >
+                  Simular recusa
+                </button>
+              </div>
 
               {result && (
                 <p
@@ -284,10 +293,14 @@ export function EventCheckoutPage() {
                   <ul>
                     {result.tickets.map((ticket) => (
                       <li key={ticket.id}>
-                        <img
-                          src={ticket.qrImage}
-                          alt={`QR ${ticket.code}`}
-                        />
+                        <button
+                          type="button"
+                          className={styles.issuedQr}
+                          onClick={() => setZoomedTicket(ticket)}
+                          aria-label={`Ampliar QR ${ticket.code}`}
+                        >
+                          <img src={ticket.qrImage} alt={`QR ${ticket.code}`} />
+                        </button>
                         <span>
                           {ticket.code}
                           <br />
@@ -303,6 +316,15 @@ export function EventCheckoutPage() {
             </aside>
           </div>
         </>
+      )}
+
+      {zoomedTicket && (
+        <QrLightbox
+          src={zoomedTicket.qrImage}
+          code={zoomedTicket.code}
+          alt={`QR ampliado ${zoomedTicket.code}`}
+          onClose={() => setZoomedTicket(null)}
+        />
       )}
     </section>
   );

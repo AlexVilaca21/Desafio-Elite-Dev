@@ -45,6 +45,7 @@ export function MyTicketsPage() {
   return (
     <section className={styles.page}>
       <header>
+        <p className={styles.kicker}>Carteira</p>
         <h1>Meus ingressos</h1>
         <p>Mostre o QR na entrada ou compartilhe o ingresso por link.</p>
       </header>

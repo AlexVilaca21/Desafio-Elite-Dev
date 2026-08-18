@@ -6,6 +6,7 @@ import type { EventSummary } from '../types/event.types';
 import {
   formatEventDate,
   formatEventStatus,
+  formatStartingPrice,
   formatVenue,
 } from '../utils/format';
 import styles from './EventsListPage.module.css';
@@ -72,6 +73,7 @@ export function EventsListPage() {
     <section className={styles.page}>
       <header className={styles.header}>
         <div>
+          <p className={styles.kicker}>Cartaz</p>
           <h1>Eventos</h1>
           <p>Busque o evento e escolha os lugares no mapa para comprar</p>
         </div>
@@ -124,22 +126,28 @@ export function EventsListPage() {
           <ul className={styles.list}>
             {events.map((item) => {
               const status = formatEventStatus(item.status);
+              const price = formatStartingPrice(item.priceRanges);
 
               return (
                 <li key={item.id}>
                   <Link
-                    to={`/events/${encodeURIComponent(item.id)}/checkout`}
+                    to={`/events/${encodeURIComponent(item.id)}`}
                     className={styles.card}
                   >
-                    {item.imageUrl ? (
-                      <img src={item.imageUrl} alt="" />
-                    ) : (
-                      <div className={styles.placeholder}>Sem imagem</div>
-                    )}
+                    <div className={styles.cover}>
+                      {item.imageUrl ? (
+                        <img src={item.imageUrl} alt="" />
+                      ) : (
+                        <div className={styles.placeholder}>Sem imagem</div>
+                      )}
+                      <span className={styles.date}>
+                        {formatEventDate(item.startDate, item.startTime)}
+                      </span>
+                    </div>
                     <div className={styles.content}>
                       <h2>{item.name}</h2>
-                      <p>{formatEventDate(item.startDate, item.startTime)}</p>
                       <p>{formatVenue(item.venue)}</p>
+                      {price && <p className={styles.price}>{price}</p>}
                       {item.classification?.genre && (
                         <p>{item.classification.genre}</p>
                       )}
@@ -149,7 +157,7 @@ export function EventsListPage() {
                         </p>
                       )}
                       <span className={styles.select}>
-                        {status ? `${status} · Comprar` : 'Selecionar e comprar'}
+                        {status ? `${status} · Ver evento` : 'Ver evento'}
                       </span>
                     </div>
                   </Link>

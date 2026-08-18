@@ -6,6 +6,7 @@ import {
   formatEventDate,
   formatEventStatus,
   formatPriceRange,
+  formatStartingPrice,
 } from '../utils/format';
 import styles from './EventDetailPage.module.css';
 
@@ -73,20 +74,31 @@ export function EventDetailPage() {
             )}
 
             <div className={styles.summary}>
+              <p className={styles.kicker}>Evento</p>
               <h1>{event.name}</h1>
               <p>{formatEventDate(event.startDate, event.startTime)}</p>
               {event.status && (
                 <p className={styles.badge}>{formatEventStatus(event.status)}</p>
               )}
-              {event.classification && (
-                <p>
-                  {[
-                    event.classification.segment,
-                    event.classification.genre,
-                    event.classification.subGenre,
-                  ]
-                    .filter(Boolean)
-                    .join(' · ')}
+              {event.classification &&
+                [
+                  event.classification.segment,
+                  event.classification.genre,
+                  event.classification.subGenre,
+                ].filter(Boolean).length > 0 && (
+                  <p>
+                    {[
+                      event.classification.segment,
+                      event.classification.genre,
+                      event.classification.subGenre,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </p>
+                )}
+              {formatStartingPrice(event.priceRanges) && (
+                <p className={styles.badge}>
+                  {formatStartingPrice(event.priceRanges)}
                 </p>
               )}
               {event.attractions.length > 0 && (
@@ -127,7 +139,6 @@ export function EventDetailPage() {
               <ul className={styles.prices}>
                 {event.priceRanges.map((range) => (
                   <li key={`${range.type}-${range.currency}-${range.min}`}>
-                    {range.type}:{' '}
                     {formatPriceRange(range.min, range.max, range.currency)}
                   </li>
                 ))}

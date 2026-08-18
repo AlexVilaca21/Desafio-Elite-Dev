@@ -39,6 +39,7 @@ export class EventSummaryDto {
   status?: string;
   venue?: EventVenueDto;
   classification?: EventClassificationDto;
+  priceRanges: EventPriceRangeDto[];
   attractions: string[];
 }
 
@@ -46,7 +47,6 @@ export class EventDetailDto extends EventSummaryDto {
   description?: string;
   info?: string;
   pleaseNote?: string;
-  priceRanges?: EventPriceRangeDto[];
   seatmapUrl?: string;
   dateTBA?: boolean;
   dateTBD?: boolean;

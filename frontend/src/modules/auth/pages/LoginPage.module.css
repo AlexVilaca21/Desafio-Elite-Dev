@@ -6,18 +6,19 @@
 
 .ticket {
   display: grid;
-  grid-template-columns: 220px minmax(280px, 420px);
+  grid-template-columns: 220px minmax(0, 420px);
   width: min(100%, 680px);
   overflow: hidden;
-  border: 1px solid #ddd6cc;
-  border-radius: 14px;
-  background: #fffdf9;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--paper);
+  box-shadow: var(--shadow);
 }
 
 .stub {
   position: relative;
-  padding: 1.4rem 1.2rem;
-  background: #0f3d2e;
+  padding: 1.5rem 1.25rem;
+  background: var(--green);
   color: #f4efe6;
 }
 
@@ -28,13 +29,14 @@
   right: -8px;
   width: 16px;
   height: 100%;
-  background: radial-gradient(circle at 0 12px, #f6f4f1 7px, transparent 8px);
+  background: radial-gradient(circle at 0 12px, var(--bg) 7px, transparent 8px);
   background-size: 16px 22px;
 }
 
 .stub h1 {
   margin: 0.35rem 0 0.6rem;
   color: #fffdf9;
+  font-size: 1.7rem;
 }
 
 .stub p {
@@ -65,20 +67,25 @@
 }
 
 .form input {
-  padding: 0.55rem 0.7rem;
-  border: 1px solid #ccc4b8;
-  border-radius: 6px;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
   background: #fff;
+  line-height: 1.3;
 }
 
 .form button[type='submit'] {
   margin-top: 0.2rem;
-  padding: 0.6rem 0.9rem;
+  padding: 0.65rem 0.9rem;
   border: none;
-  border-radius: 6px;
-  background: #0f3d2e;
+  border-radius: 8px;
+  background: var(--green);
   color: #fff;
   cursor: pointer;
+}
+
+.form button[type='submit']:hover:not(:disabled) {
+  background: #0c3226;
 }
 
 .form button:disabled {
@@ -141,8 +148,14 @@
 }
 
 @media (max-width: 700px) {
+  .page {
+    padding-top: 0.25rem;
+    width: 100%;
+  }
+
   .ticket {
     grid-template-columns: 1fr;
+    width: 100%;
   }
 
   .stub::after {
@@ -151,7 +164,27 @@
     bottom: -8px;
     width: 100%;
     height: 16px;
-    background: radial-gradient(circle at 12px 0, #f6f4f1 7px, transparent 8px);
+    background: radial-gradient(circle at 12px 0, var(--bg) 7px, transparent 8px);
     background-size: 22px 16px;
+  }
+
+  .form {
+    padding: 1.15rem 1rem 1.1rem;
+  }
+
+  .form input,
+  .form button[type='submit'] {
+    width: 100%;
+    min-height: 3rem;
+    padding: 0.75rem 0.9rem;
+    font-size: 1rem;
+    line-height: 1.3;
+  }
+
+  .switch,
+  .back {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
   }
 }

@@ -16,10 +16,7 @@ import { VenuesModule } from 'modules/venues/venues.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: [
-        join(__dirname, '..', '.env'),
-        join(process.cwd(), '.env'),
-      ],
+      envFilePath: [join(__dirname, '..', '.env'), join(process.cwd(), '.env')],
     }),
     PrismaModule,
     UsersModule,

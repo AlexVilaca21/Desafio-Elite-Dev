@@ -112,7 +112,11 @@ export class TicketmasterService {
     try {
       const { data } = await firstValueFrom(
         this.httpService.get<T>(`${this.baseUrl}${path}`, {
-          params: { ...params, apikey: apiKey },
+          params: {
+            locale: '*',
+            ...params,
+            apikey: apiKey,
+          },
         }),
       );
 

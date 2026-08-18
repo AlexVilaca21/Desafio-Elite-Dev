@@ -47,6 +47,7 @@ describe('TicketmasterService', () => {
       'https://app.ticketmaster.com/discovery/v2/events.json',
       {
         params: {
+          locale: '*',
           keyword: 'rock',
           page: 0,
           apikey: mockApiKey,
@@ -64,7 +65,7 @@ describe('TicketmasterService', () => {
 
     expect(httpService.get).toHaveBeenCalledWith(
       'https://app.ticketmaster.com/discovery/v2/events/event-1.json',
-      { params: { apikey: mockApiKey } },
+      { params: { locale: '*', apikey: mockApiKey } },
     );
     expect(result).toEqual(payload);
   });
@@ -79,6 +80,7 @@ describe('TicketmasterService', () => {
       'https://app.ticketmaster.com/discovery/v2/venues.json',
       {
         params: {
+          locale: '*',
           stateCode: 'SP',
           countryCode: 'BR',
           apikey: mockApiKey,
@@ -100,31 +102,38 @@ describe('TicketmasterService', () => {
 
     expect(httpService.get).toHaveBeenCalledWith(
       'https://app.ticketmaster.com/discovery/v2/attractions.json',
-      { params: { keyword: 'madonna', apikey: mockApiKey } },
+      { params: { locale: '*', keyword: 'madonna', apikey: mockApiKey } },
     );
     expect(httpService.get).toHaveBeenCalledWith(
       'https://app.ticketmaster.com/discovery/v2/classifications.json',
-      { params: { keyword: 'music', apikey: mockApiKey } },
+      { params: { locale: '*', keyword: 'music', apikey: mockApiKey } },
     );
     expect(httpService.get).toHaveBeenCalledWith(
       'https://app.ticketmaster.com/discovery/v2/suggest.json',
-      { params: { keyword: 'rock', countryCode: 'BR', apikey: mockApiKey } },
+      {
+        params: {
+          locale: '*',
+          keyword: 'rock',
+          countryCode: 'BR',
+          apikey: mockApiKey,
+        },
+      },
     );
     expect(httpService.get).toHaveBeenCalledWith(
       'https://app.ticketmaster.com/discovery/v2/events/event-1/images.json',
-      { params: { apikey: mockApiKey } },
+      { params: { locale: '*', apikey: mockApiKey } },
     );
     expect(httpService.get).toHaveBeenCalledWith(
       'https://app.ticketmaster.com/discovery/v2/venues/venue-1.json',
-      { params: { apikey: mockApiKey } },
+      { params: { locale: '*', apikey: mockApiKey } },
     );
     expect(httpService.get).toHaveBeenCalledWith(
       'https://app.ticketmaster.com/discovery/v2/attractions/attr-1.json',
-      { params: { apikey: mockApiKey } },
+      { params: { locale: '*', apikey: mockApiKey } },
     );
     expect(httpService.get).toHaveBeenCalledWith(
       'https://app.ticketmaster.com/discovery/v2/classifications/class-1.json',
-      { params: { apikey: mockApiKey } },
+      { params: { locale: '*', apikey: mockApiKey } },
     );
   });
 

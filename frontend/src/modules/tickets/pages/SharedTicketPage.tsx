@@ -53,6 +53,7 @@ export function SharedTicketPage() {
   return (
     <section className={styles.page}>
       <header>
+        <p className={styles.kicker}>Convidado</p>
         <h1>Ingresso compartilhado</h1>
         <p>Este QR vale na entrada do evento.</p>
       </header>

@@ -3,6 +3,7 @@ import { PrismaService } from 'modules/prisma/prisma.service';
 import { TicketmasterService } from 'modules/service/ticketmaster/ticketmaster.service';
 import { TicketmasterEvent } from 'modules/service/ticketmaster/interfaces/ticketmaster.interface';
 import { compactParams } from 'modules/shared/utils/compact-params';
+import { catalogUnitPrice } from 'modules/shared/utils/catalog-price';
 import { buildSeatLayout } from 'modules/shared/utils/seat-layout';
 import {
   mapEventSummary,
@@ -11,6 +12,8 @@ import {
 import {
   EventDetailDto,
   EventImagesDto,
+  EventPriceRangeDto,
+  EventSummaryDto,
   EventsSearchResponseDto,
 } from './dto/event.dto';
 import { SearchEventsQueryDto } from './dto/search-events-query.dto';
@@ -31,9 +34,18 @@ export class EventsService {
     );
 
     const events = response._embedded?.events ?? [];
+    const published = await this.prisma.publishedEvent.findMany({
+      where: { ticketmasterId: { in: events.map((event) => event.id) } },
+      select: { ticketmasterId: true, unitPrice: true, currency: true },
+    });
+    const publishedById = new Map(
+      published.map((item) => [item.ticketmasterId, item]),
+    );
 
     return {
-      events: events.map((event) => mapEventSummary(event)),
+      events: events.map((event) =>
+        this.withCatalogPrice(event, publishedById.get(event.id)),
+      ),
       page: mapPage(response.page, {
         size: query.size ?? 20,
         number: query.page ?? 0,
@@ -44,7 +56,20 @@ export class EventsService {
 
   async getEventById(id: string): Promise<EventDetailDto> {
     const response = await this.ticketmasterService.getEventById(id);
-    return this.mapToDetail(response);
+    const published = await this.prisma.publishedEvent.findUnique({
+      where: { ticketmasterId: id },
+      select: { unitPrice: true, currency: true },
+    });
+
+    return {
+      ...this.withCatalogPrice(response, published ?? undefined),
+      description: response.description,
+      info: response.info,
+      pleaseNote: response.pleaseNote,
+      seatmapUrl: response.seatmap?.staticUrl,
+      dateTBA: response.dates?.start?.dateTBA,
+      dateTBD: response.dates?.start?.dateTBD,
+    };
   }
 
   async getEventSeating(id: string): Promise<EventSeatingDto> {
@@ -137,7 +162,8 @@ export class EventsService {
     }
 
     const venue = event._embedded?.venues?.[0];
-    const price = event.priceRanges?.[0];
+    const fromApi = event.priceRanges?.[0];
+    const fallback = catalogUnitPrice(event.id);
 
     return this.prisma.publishedEvent.create({
       data: {
@@ -149,8 +175,8 @@ export class EventsService {
         venueName: venue?.name,
         venueCity: venue?.city?.name,
         venueStateCode: venue?.state?.stateCode,
-        currency: price?.currency ?? 'BRL',
-        unitPrice: price?.min ?? 80,
+        currency: fromApi?.currency ?? fallback.currency,
+        unitPrice: fromApi?.min ?? fallback.unitPrice,
         seats: {
           create: buildSeatLayout(),
         },
@@ -158,21 +184,36 @@ export class EventsService {
     });
   }
 
-  private mapToDetail(event: TicketmasterEvent): EventDetailDto {
+  private withCatalogPrice(
+    event: TicketmasterEvent,
+    published?: {
+      unitPrice: { toString(): string } | number;
+      currency: string;
+    },
+  ): EventSummaryDto {
+    const summary = mapEventSummary(event);
+
+    if (summary.priceRanges.length) {
+      return summary;
+    }
+
+    const fallback = published
+      ? {
+          currency: published.currency,
+          unitPrice: Number(published.unitPrice),
+        }
+      : catalogUnitPrice(event.id);
+
+    const price: EventPriceRangeDto = {
+      type: 'standard',
+      currency: fallback.currency,
+      min: fallback.unitPrice,
+      max: fallback.unitPrice,
+    };
+
     return {
-      ...mapEventSummary(event),
-      description: event.description,
-      info: event.info,
-      pleaseNote: event.pleaseNote,
-      priceRanges: event.priceRanges?.map((range) => ({
-        type: range.type,
-        currency: range.currency,
-        min: range.min,
-        max: range.max,
-      })),
-      seatmapUrl: event.seatmap?.staticUrl,
-      dateTBA: event.dates?.start?.dateTBA,
-      dateTBD: event.dates?.start?.dateTBD,
+      ...summary,
+      priceRanges: [price],
     };
   }
 }

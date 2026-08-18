@@ -79,10 +79,66 @@ export function mapVenue(venue?: TicketmasterVenue): MappedVenue | undefined {
   };
 }
 
-export function mapEventSummary(event: TicketmasterEvent) {
-  const primaryClassification = event.classifications?.find(
-    (item) => item.primary,
+function cleanLabel(value?: string): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+
+  if (
+    !trimmed ||
+    /^undefined$/i.test(trimmed) ||
+    /^null$/i.test(trimmed) ||
+    trimmed === '-'
+  ) {
+    return undefined;
+  }
+
+  return trimmed;
+}
+
+export function mapPriceRanges(
+  ranges?: Array<{
+    type: string;
+    currency: string;
+    min: number;
+    max: number;
+  }>,
+) {
+  return (
+    ranges
+      ?.filter(
+        (range) =>
+          Number.isFinite(range.min) &&
+          Number.isFinite(range.max) &&
+          Boolean(range.currency),
+      )
+      .map((range) => ({
+        type: range.type,
+        currency: range.currency,
+        min: range.min,
+        max: range.max,
+      })) ?? []
   );
+}
+
+export function mapEventSummary(event: TicketmasterEvent) {
+  const primaryClassification =
+    event.classifications?.find((item) => item.primary) ??
+    event.classifications?.[0];
+
+  const classification = primaryClassification
+    ? {
+        segment: cleanLabel(primaryClassification.segment?.name),
+        genre: cleanLabel(primaryClassification.genre?.name),
+        subGenre: cleanLabel(primaryClassification.subGenre?.name),
+      }
+    : undefined;
+
+  const hasClassification =
+    classification &&
+    (classification.segment || classification.genre || classification.subGenre);
 
   return {
     id: event.id,
@@ -94,15 +150,12 @@ export function mapEventSummary(event: TicketmasterEvent) {
     timezone: event.dates?.timezone,
     status: event.dates?.status?.code,
     venue: mapVenue(event._embedded?.venues?.[0]),
-    classification: primaryClassification
-      ? {
-          segment: primaryClassification.segment?.name,
-          genre: primaryClassification.genre?.name,
-          subGenre: primaryClassification.subGenre?.name,
-        }
-      : undefined,
+    classification: hasClassification ? classification : undefined,
+    priceRanges: mapPriceRanges(event.priceRanges),
     attractions:
-      event._embedded?.attractions?.map((attraction) => attraction.name) ?? [],
+      event._embedded?.attractions
+        ?.map((attraction) => cleanLabel(attraction.name))
+        .filter((name): name is string => Boolean(name)) ?? [],
   };
 }
 

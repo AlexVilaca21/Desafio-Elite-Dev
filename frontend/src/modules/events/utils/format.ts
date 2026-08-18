@@ -50,6 +50,20 @@ export function formatPriceRange(
   return `${formatter.format(min)} – ${formatter.format(max)}`;
 }
 
+export function formatStartingPrice(
+  ranges?: Array<{ min: number; max: number; currency: string }>,
+): string | undefined {
+  const range = ranges?.find(
+    (item) => Number.isFinite(item.min) && item.currency,
+  );
+
+  if (!range) {
+    return undefined;
+  }
+
+  return `A partir de ${formatMoney(range.min, range.currency)}`;
+}
+
 export function formatVenue(venue?: {
   name: string;
   city?: string;
