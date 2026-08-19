@@ -43,7 +43,7 @@ Na pasta `backend`:
 cp .env.example .env
 ```
 
-Preencha `TICKETMASTER_API_KEY` ([cadastro na Ticketmaster](https://developer.ticketmaster.com/)), `JWT_SECRET` e `TICKET_QR_SECRET`.
+O `.env.example` já traz `DATABASE_URL`, `JWT_SECRET` e `TICKET_QR_SECRET` para o Postgres local. `TICKETMASTER_API_KEY` pode ficar vazia: o evento do seed funciona; só a busca do organizador no catálogo Ticketmaster precisa da [chave](https://developer.ticketmaster.com/).
 
 Suba o Postgres e aplique o schema:
 
