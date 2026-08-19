@@ -2,6 +2,8 @@
 
 Plataforma de eventos e ingressos: o organizador monta o cartaz a partir da [Ticketmaster Discovery](https://developer.ticketmaster.com/products-and-docs/apis/discovery-api/v2/) (ou cria o evento do zero), o cliente escolhe o lugar no mapa, paga de forma simulada e recebe um QR. Na entrada, a portaria valida o código uma vez.
 
+**Acessar o app:** [https://elite-ingressos-web.onrender.com/](https://elite-ingressos-web.onrender.com/)
+
 O cliente vê **só o que está publicado**. Catálogo Ticketmaster, preço e capacidade ficam no painel do organizador.
 
 ## Sumário
@@ -97,7 +99,7 @@ O cadastro pela tela cria só conta de **cliente**.
 
 ## Percorrer o fluxo
 
-1. Abra [http://localhost:5173](http://localhost:5173) e entre como organizador. Publique um show do catálogo ou crie um evento próprio (banner é obrigatório nesse caso).
+1. Abra [https://elite-ingressos-web.onrender.com/](https://elite-ingressos-web.onrender.com/) e entre como organizador. Publique um show do catálogo ou crie um evento próprio (banner é obrigatório nesse caso).
 2. Saia e entre como **Cliente Ana**. Abra o evento, escolha lugares, use **Pagar e confirmar** e **Simular recusa**.
 3. Em **Meus ingressos**, mostre o QR, compartilhe o link (abre sem login) e, se quiser, cancele para devolver o lugar.
 4. Entre como **Portaria**, escolha o evento e leia o QR (ou digite o código). Escaneie de novo: deve virar “já utilizado”.
@@ -195,31 +197,16 @@ Não há spec/PRD versionado à parte: o histórico de commits no GitHub é o ra
 
 ## Deploy no Render
 
-Front e back sobem como dois serviços no mesmo GitHub ([`render.yaml`](render.yaml)): site estático (Vite) e Web Service (Nest).
+O app está publicado:
 
-1. Banco na nuvem: [Neon](https://console.neon.tech) → Postgres e `DATABASE_URL` (*pooled*).
-2. No [Render](https://dashboard.render.com): **New → Blueprint** → este repositório. O dashboard pede as variáveis com `sync: false`:
+- **Site:** [https://elite-ingressos-web.onrender.com/](https://elite-ingressos-web.onrender.com/)
+- **API:** [https://elite-ingressos-api.onrender.com/api](https://elite-ingressos-api.onrender.com/api)
 
-   | Serviço | Chave | Valor |
-   | --- | --- | --- |
-   | API | `DATABASE_URL` | URL do Neon |
-   | API | `TICKETMASTER_API_KEY` | chave da Discovery |
-   | API | `JWT_SECRET` | texto longo e aleatório |
-   | API | `TICKET_QR_SECRET` | outro texto longo e aleatório |
-   | API | `FRONTEND_ORIGIN` | URL HTTPS do site estático (depois que ele subir) |
-   | Web | `VITE_API_URL` | `https://<api>.onrender.com/api` |
+Front e back são dois serviços no mesmo GitHub ([`render.yaml`](render.yaml)): site estático (Vite) e Web Service (Nest), com Postgres no [Neon](https://console.neon.tech).
 
-3. Schema e contas de teste no Neon (no seu PC, com o `.env` da API apontando para o Neon):
+No plano grátis a API dorme após ~15 min sem acesso. O primeiro hit pode demorar até um minuto; os seguintes saem rápido.
 
-```bash
-cd backend
-yarn prisma:deploy
-yarn prisma:seed
-```
-
-4. Depois que a API tiver URL, coloque `VITE_API_URL` no serviço estático e **Manual Deploy** no front (o Vite grava a URL no build).
-
-No plano grátis a API dorme após ~15 min sem acesso; o primeiro hit pode demorar até um minuto.
+Para redeploy ou fork: `DATABASE_URL` (Neon, *pooled*), `TICKETMASTER_API_KEY`, `JWT_SECRET` e `TICKET_QR_SECRET` na API; `FRONTEND_ORIGIN` = URL do site; `VITE_API_URL` = `https://elite-ingressos-api.onrender.com/api` no estático. Schema e contas: no PC, com o `.env` apontando para o Neon, `yarn prisma:deploy` e `yarn prisma:seed` em `backend`.
 
 ## O que não entra neste recorte
 

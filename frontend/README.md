@@ -1,6 +1,8 @@
 # Frontend — Elite Ingressos
 
-React + Vite. O passo a passo completo (banco, seed, contas e papéis) está no [README da raiz](../README.md).
+React + Vite. Passo a passo completo (banco, seed, contas e papéis) no [README da raiz](../README.md).
+
+**Acessar o app:** [https://elite-ingressos-web.onrender.com/](https://elite-ingressos-web.onrender.com/)
 
 ```bash
 cp .env.example .env
@@ -8,7 +10,7 @@ yarn install
 yarn dev
 ```
 
-App: [http://localhost:5173](http://localhost:5173)
+Local: [http://localhost:5173](http://localhost:5173)
 
 ```bash
 yarn test
