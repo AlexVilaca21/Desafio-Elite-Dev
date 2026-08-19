@@ -25,6 +25,7 @@ export function useLiveSeating(eventId: string | undefined): LiveSeating {
       return;
     }
 
+    const id = eventId;
     let cancelled = false;
     let source: EventSource | null = null;
     let pollTimer: number | undefined;
@@ -35,7 +36,7 @@ export function useLiveSeating(eventId: string | undefined): LiveSeating {
       }
 
       try {
-        const data = await getEventSeating(eventId);
+        const data = await getEventSeating(id);
         if (!cancelled) {
           setSeating(data);
           setError(null);
@@ -72,7 +73,7 @@ export function useLiveSeating(eventId: string | undefined): LiveSeating {
 
     try {
       source = new EventSource(
-        `${env.apiUrl}/events/${encodeURIComponent(eventId)}/seating/stream`,
+        `${env.apiUrl}/events/${encodeURIComponent(id)}/seating/stream`,
       );
       source.onopen = () => {
         if (!cancelled) {
