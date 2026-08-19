@@ -15,6 +15,7 @@ O cliente vê **só o que está publicado**. Catálogo Ticketmaster, preço e ca
 - [Testes](#testes)
 - [Decisões](#decisões)
 - [Uso de IA](#uso-de-ia)
+- [Deploy no Render](#deploy-no-render)
 - [O que não entra neste recorte](#o-que-não-entra-neste-recorte)
 - [Se algo não subir](#se-algo-não-subir)
 
@@ -192,13 +193,40 @@ Na busca: **debounce de 400 ms** em texto e cidade (não uma request por tecla),
 
 Não há spec/PRD versionado à parte: o histórico de commits no GitHub é o rastro do processo.
 
+## Deploy no Render
+
+Front e back sobem como dois serviços no mesmo GitHub ([`render.yaml`](render.yaml)): site estático (Vite) e Web Service (Nest).
+
+1. Banco na nuvem: [Neon](https://console.neon.tech) → Postgres e `DATABASE_URL` (*pooled*).
+2. No [Render](https://dashboard.render.com): **New → Blueprint** → este repositório. O dashboard pede as variáveis com `sync: false`:
+
+   | Serviço | Chave | Valor |
+   | --- | --- | --- |
+   | API | `DATABASE_URL` | URL do Neon |
+   | API | `TICKETMASTER_API_KEY` | chave da Discovery |
+   | API | `JWT_SECRET` | texto longo e aleatório |
+   | API | `TICKET_QR_SECRET` | outro texto longo e aleatório |
+   | API | `FRONTEND_ORIGIN` | URL HTTPS do site estático (depois que ele subir) |
+   | Web | `VITE_API_URL` | `https://<api>.onrender.com/api` |
+
+3. Schema e contas de teste no Neon (no seu PC, com o `.env` da API apontando para o Neon):
+
+```bash
+cd backend
+yarn prisma:deploy
+yarn prisma:seed
+```
+
+4. Depois que a API tiver URL, coloque `VITE_API_URL` no serviço estático e **Manual Deploy** no front (o Vite grava a URL no build).
+
+No plano grátis a API dorme após ~15 min sem acesso; o primeiro hit pode demorar até um minuto.
+
 ## O que não entra neste recorte
 
 O PDF pede para **não** fazer: nota fiscal, revenda entre usuários, app nativo, recuperação de senha e envio de ingresso por e-mail.
 
 Também não há:
 
-- **Deploy publicado** (vale ponto extra no PDF; o app roda local como acima).
 - **Docker Compose do front + back.** O compose sobe só o Postgres. API e Vite continuam no `yarn` local.
 - **Provedor de pagamento real.** A cobrança é simulada (`approve` / `decline`), como o enunciado permite.
 
@@ -212,6 +240,7 @@ A busca do organizador na Ticketmaster pede no máximo 1000 eventos (páginas de
 - **Front “não conecta”:** confira se a API está em `:3000` e se `VITE_API_URL` está igual ao `.env.example`.
 - **QR inválido depois de mudar o `.env`:** `TICKET_QR_SECRET` diferente invalida os QRs já emitidos. Gere o ingresso de novo.
 - **Yarn no front com `yarn dev` aberto (Windows):** às vezes o Vite trava o binding nativo e o `yarn install` falha com `EPERM`. Pare o `yarn dev` e rode o `yarn` de novo.
+- **Render 502 no primeiro acesso:** a API grátis dormiu. Espere o cold start (~1 min) e recarregue.
 - **Tirar do cartaz bloqueado:** ainda há lugar vendido. Cancele os ingressos ou deixe a venda no mural, de propósito.
 
 Estrutura do repositório: `backend/` (NestJS + Prisma + PostgreSQL) e `frontend/` (React + Vite).

@@ -1,0 +1,39 @@
+services:
+  - type: web
+    name: elite-ingressos-api
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: yarn install --frozen-lockfile && yarn build
+    preDeployCommand: yarn prisma:deploy
+    startCommand: yarn start:prod
+    healthCheckPath: /api/events
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: NODE_PATH
+        value: dist
+      - key: DATABASE_URL
+        sync: false
+      - key: TICKETMASTER_API_KEY
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: TICKET_QR_SECRET
+        sync: false
+      - key: FRONTEND_ORIGIN
+        sync: false
+
+  - type: web
+    name: elite-ingressos-web
+    runtime: static
+    rootDir: frontend
+    buildCommand: yarn install --frozen-lockfile && yarn build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        sync: false

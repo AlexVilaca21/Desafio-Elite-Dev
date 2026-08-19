@@ -5,6 +5,21 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { HttpExceptionFilter } from 'modules/shared/http/http-exception.filter';
 import { AppModule } from './app.module';
 
+function isAllowedOrigin(origin: string): boolean {
+  const extra = process.env.FRONTEND_ORIGIN;
+
+  try {
+    const { hostname } = new URL(origin);
+    return (
+      hostname === 'localhost' ||
+      hostname.endsWith('.onrender.com') ||
+      origin === extra
+    );
+  } catch {
+    return false;
+  }
+}
+
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
@@ -35,11 +50,14 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
 
   app.enableCors({
-    origin: ['http://localhost:5173'],
+    origin: (origin, callback) => {
+      callback(null, !origin || isAllowedOrigin(origin));
+    },
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
   await app.listen(process.env.PORT ?? 3000);
 }
+
 void bootstrap();
