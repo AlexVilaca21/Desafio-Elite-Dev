@@ -11,7 +11,7 @@ vi.mock('../context/AuthContext', () => ({
 import { useAuth } from '../context/AuthContext';
 
 describe('LoginPage', () => {
-  it('lists the seeded accounts and logs in as client', async () => {
+  it('logs in with the email and password typed in the form', async () => {
     const user = userEvent.setup();
     const login = vi.fn().mockResolvedValue({
       id: 'user-1',
@@ -31,10 +31,13 @@ describe('LoginPage', () => {
 
     renderApp(<LoginPage />, { route: '/entrar' });
 
-    expect(screen.getByText('cliente@elite.dev · senha123')).toBeInTheDocument();
-    expect(screen.getByText('organizador@elite.dev · senha123')).toBeInTheDocument();
-    expect(screen.getByText('portaria@elite.dev · senha123')).toBeInTheDocument();
+    expect(
+      screen.queryByText(/contas para avaliação/i),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/senha123/)).not.toBeInTheDocument();
 
+    await user.type(screen.getByLabelText('E-mail'), 'cliente@elite.dev');
+    await user.type(screen.getByLabelText('Senha'), 'senha123');
     await user.click(screen.getByRole('button', { name: 'Entrar' }));
 
     await waitFor(() => {

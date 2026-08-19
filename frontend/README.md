@@ -1,30 +1,15 @@
 # Frontend — Elite Ingressos
 
-React + Vite + TypeScript (Yarn).
-
-## Estrutura atual
-
-```
-frontend/src/
-├── main.tsx
-├── routes/
-├── styles/
-├── shared/
-│   ├── api/
-│   ├── components/
-│   └── config/
-└── modules/
-    └── events/          # lista de eventos (Ticketmaster via backend)
-```
-
-## Setup
+React + Vite. O passo a passo completo (banco, seed, contas e papéis) está no [README da raiz](../README.md).
 
 ```bash
-cd frontend
 cp .env.example .env
 yarn install
 yarn dev
 ```
 
-App: `http://localhost:5173`  
+App: [http://localhost:5173](http://localhost:5173)
 
+```bash
+yarn test
+```

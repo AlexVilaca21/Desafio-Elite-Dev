@@ -3,13 +3,6 @@ import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import styles from './LoginPage.module.css';
 
-const TEST_ACCOUNTS = [
-  { role: 'Cliente', email: 'cliente@elite.dev' },
-  { role: 'Cliente 2', email: 'cliente2@elite.dev' },
-  { role: 'Organizador', email: 'organizador@elite.dev' },
-  { role: 'Portaria', email: 'portaria@elite.dev' },
-];
-
 export function LoginPage() {
   const { login, register, user, ready } = useAuth();
   const navigate = useNavigate();
@@ -31,8 +24,8 @@ export function LoginPage() {
 
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('cliente@elite.dev');
-  const [password, setPassword] = useState('senha123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -152,27 +145,6 @@ export function LoginPage() {
               ? 'Criar conta de cliente'
               : 'Já tenho conta'}
           </button>
-
-          <details className={styles.accounts}>
-            <summary>Contas para avaliação</summary>
-            <ul>
-              {TEST_ACCOUNTS.map((account) => (
-                <li key={account.email}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMode('login');
-                      setEmail(account.email);
-                      setPassword('senha123');
-                    }}
-                  >
-                    {account.role}
-                  </button>
-                  <span>{account.email} · senha123</span>
-                </li>
-              ))}
-            </ul>
-          </details>
 
           <Link to="/" className={styles.back}>
             ← Voltar aos eventos
