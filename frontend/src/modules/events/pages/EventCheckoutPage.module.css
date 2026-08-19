@@ -25,6 +25,30 @@
   color: #8b1e1e;
 }
 
+.taken {
+  padding: 0.55rem 0.75rem;
+  border-radius: 8px;
+  background: #f8e6e4;
+  color: #8b1e1e;
+}
+
+.liveOn,
+.liveOff {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.liveOn {
+  color: #1f6b45;
+}
+
+.liveOff {
+  color: #7a7368;
+}
+
 .success {
   color: var(--success);
   font-weight: 600;
@@ -74,9 +98,17 @@
   box-shadow: var(--shadow);
 }
 
+.mapHead {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
+  margin-bottom: 1rem;
+}
+
 .stage {
   max-width: 420px;
-  margin: 0 auto 1.4rem;
+  margin: 0;
   padding: 0.45rem 1.5rem 0.7rem;
   border-radius: 0 0 50% 50%;
   background: #1f1b16;

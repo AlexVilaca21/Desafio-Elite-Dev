@@ -1,6 +1,7 @@
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Role, SeatStatus, TicketStatus } from '@prisma/client';
+import { SeatingLiveService } from 'modules/events/seating-live.service';
 import { PrismaService } from 'modules/prisma/prisma.service';
 import { QrCodeService } from './qr-code.service';
 import { TicketsService } from './tickets.service';
@@ -24,6 +25,8 @@ describe('TicketsService', () => {
     async (callback: (tx: { ticket: typeof ticket; seat: typeof seat }) => Promise<unknown>) =>
       callback({ ticket, seat }),
   );
+
+  const seatingLive = { notify: jest.fn() };
 
   const qrCodeService = {
     generateCode: jest.fn().mockReturnValue('CODE12'),
@@ -68,6 +71,7 @@ describe('TicketsService', () => {
     ticket.create.mockReset();
     seat.update.mockReset();
     $transaction.mockClear();
+    seatingLive.notify.mockReset();
     qrCodeService.verify.mockReset();
     qrCodeService.sign.mockClear();
     qrCodeService.toDataUrl.mockClear();
@@ -77,6 +81,7 @@ describe('TicketsService', () => {
         TicketsService,
         { provide: PrismaService, useValue: { ticket, seat, $transaction } },
         { provide: QrCodeService, useValue: qrCodeService },
+        { provide: SeatingLiveService, useValue: seatingLive },
       ],
     }).compile();
 
@@ -206,6 +211,7 @@ describe('TicketsService', () => {
     expect(result.status).toBe(TicketStatus.CANCELLED);
     expect(result.qrImage).toBe('');
     expect(result.seat).toEqual({ id: '', row: 'A', number: 1 });
+    expect(seatingLive.notify).toHaveBeenCalledWith('event-1');
   });
 
   it('should not cancel a used ticket', async () => {

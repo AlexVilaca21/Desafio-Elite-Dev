@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { EventSortOrder } from './dto/search-events-query.dto';
 import { EventsController } from './events.controller';
 import { EventsService } from './events.service';
+import { SeatingLiveService } from './seating-live.service';
 
 describe('EventsController', () => {
   let controller: EventsController;
@@ -33,12 +34,14 @@ describe('EventsController', () => {
   const getEventById = jest.fn().mockResolvedValue(mockEventDetail);
   const getEventImages = jest.fn().mockResolvedValue({ images: [] });
   const getEventSeating = jest.fn().mockResolvedValue({ rows: [] });
+  const watch = jest.fn().mockReturnValue({ subscribe: jest.fn() });
 
   beforeEach(async () => {
     searchEvents.mockClear();
     getEventById.mockClear();
     getEventImages.mockClear();
     getEventSeating.mockClear();
+    watch.mockClear();
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [EventsController],
@@ -51,6 +54,10 @@ describe('EventsController', () => {
             getEventImages,
             getEventSeating,
           },
+        },
+        {
+          provide: SeatingLiveService,
+          useValue: { watch },
         },
       ],
     }).compile();
@@ -94,6 +101,13 @@ describe('EventsController', () => {
     it('should delegate seating to EventsService', async () => {
       await controller.getEventSeating('event-1');
       expect(getEventSeating).toHaveBeenCalledWith('event-1');
+    });
+  });
+
+  describe('streamSeating', () => {
+    it('should stream seating updates for the event', () => {
+      controller.streamSeating('event-1');
+      expect(watch).toHaveBeenCalledWith('event-1');
     });
   });
 });

@@ -42,7 +42,7 @@ export function AppModal({
       aria-labelledby={titleId}
     >
       {headerExtra}
-      <DialogTitle id={titleId} sx={{ pb: 1 }}>
+      <DialogTitle id={titleId} component="div" sx={{ pb: 1 }}>
         {kicker && (
           <Typography
             variant="overline"

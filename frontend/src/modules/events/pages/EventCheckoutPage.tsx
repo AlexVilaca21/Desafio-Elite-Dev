@@ -1,17 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/modules/auth/context/AuthContext';
 import { QrLightbox } from '@/modules/tickets/components/QrLightbox';
-import {
-  createReservation,
-  getEventSeating,
-} from '../services/events.service';
-import type {
-  EventSeating,
-  IssuedTicket,
-  Reservation,
-  Seat,
-} from '../types/event.types';
+import { useLiveSeating } from '../hooks/useLiveSeating';
+import { createReservation } from '../services/events.service';
+import type { IssuedTicket, Reservation, Seat } from '../types/event.types';
 import { formatEventDate, formatMoney } from '../utils/format';
 import styles from './EventCheckoutPage.module.css';
 
@@ -23,46 +16,36 @@ export function EventCheckoutPage() {
   const navigate = useNavigate();
   const { isClient, ready } = useAuth();
   const loginPath = `/entrar?from=${encodeURIComponent(location.pathname)}`;
-  const [seating, setSeating] = useState<EventSeating | null>(null);
+  const { seating, loading, error, live, refresh } = useLiveSeating(id);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [payError, setPayError] = useState<string | null>(null);
+  const [takenNotice, setTakenNotice] = useState<string | null>(null);
   const [result, setResult] = useState<Reservation | null>(null);
   const [zoomedTicket, setZoomedTicket] = useState<IssuedTicket | null>(null);
-
-  async function loadSeating(eventId: string, silent = false) {
-    if (!silent) {
-      setLoading(true);
-    }
-    setError(null);
-
-    try {
-      const data = await getEventSeating(eventId);
-      setSeating(data);
-    } catch (err) {
-      setSeating(null);
-      setError(
-        err instanceof Error
-          ? err.message
-          : 'Falha ao carregar o mapa de assentos',
-      );
-    } finally {
-      if (!silent) {
-        setLoading(false);
-      }
-    }
-  }
+  const selectedIdsRef = useRef(selectedIds);
+  selectedIdsRef.current = selectedIds;
 
   useEffect(() => {
-    if (!id) {
-      setError('Evento não informado');
-      setLoading(false);
+    if (!seating) {
       return;
     }
 
-    void loadSeating(id);
-  }, [id]);
+    const sold = new Set(
+      seating.rows
+        .flatMap((row) => row.seats)
+        .filter((seat) => seat.status === 'SOLD')
+        .map((seat) => seat.id),
+    );
+    const next = selectedIdsRef.current.filter((seatId) => !sold.has(seatId));
+
+    if (next.length !== selectedIdsRef.current.length) {
+      setSelectedIds(next);
+      setTakenNotice(
+        'Alguém acabou de levar um dos lugares. Escolha outro assento.',
+      );
+    }
+  }, [seating]);
 
   const selectedSeats = useMemo(() => {
     if (!seating) {
@@ -84,7 +67,8 @@ export function EventCheckoutPage() {
     }
 
     setResult(null);
-    setError(null);
+    setPayError(null);
+    setTakenNotice(null);
     setSelectedIds((current) => {
       if (current.includes(seat.id)) {
         return current.filter((item) => item !== seat.id);
@@ -109,7 +93,8 @@ export function EventCheckoutPage() {
     }
 
     setPaying(true);
-    setError(null);
+    setPayError(null);
+    setTakenNotice(null);
 
     try {
       const reservation = await createReservation({
@@ -121,21 +106,21 @@ export function EventCheckoutPage() {
       setResult(reservation);
 
       if (reservation.status === 'PAID') {
-        await loadSeating(id, true);
         setSelectedIds([]);
+        await refresh();
       }
     } catch (err) {
       setResult(null);
-      setError(
+      setPayError(
         err instanceof Error ? err.message : 'Falha ao processar o pagamento',
       );
-      if (id) {
-        await loadSeating(id, true);
-      }
+      await refresh();
     } finally {
       setPaying(false);
     }
   }
+
+  const displayError = payError ?? error;
 
   return (
     <section className={styles.page}>
@@ -144,7 +129,8 @@ export function EventCheckoutPage() {
       </Link>
 
       {loading && <p className={styles.status}>Montando o mapa de assentos...</p>}
-      {error && <p className={styles.error}>{error}</p>}
+      {displayError && <p className={styles.error}>{displayError}</p>}
+      {takenNotice && <p className={styles.taken}>{takenNotice}</p>}
 
       {!loading && seating && (
         <>
@@ -176,7 +162,12 @@ export function EventCheckoutPage() {
 
           <div className={styles.layout}>
             <div className={styles.mapPanel}>
-              <div className={styles.stage}>Palco</div>
+              <div className={styles.mapHead}>
+                <div className={styles.stage}>Palco</div>
+                <p className={live ? styles.liveOn : styles.liveOff}>
+                  {live ? 'Mapa ao vivo' : 'Atualizando o mapa'}
+                </p>
+              </div>
 
               <div className={styles.map} role="grid" aria-label="Mapa de assentos">
                 {seating.rows.map((row) => (

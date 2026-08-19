@@ -14,6 +14,7 @@ import {
   TicketStatus,
 } from '@prisma/client';
 import { AuthUser } from 'modules/auth/types/auth-user';
+import { SeatingLiveService } from 'modules/events/seating-live.service';
 import { PrismaService } from 'modules/prisma/prisma.service';
 import { TicketResponseDto, ValidateTicketResponseDto } from './dto/ticket.dto';
 import { ValidateTicketDto } from './dto/validate-ticket.dto';
@@ -31,6 +32,7 @@ export class TicketsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly qrCodeService: QrCodeService,
+    private readonly seatingLive: SeatingLiveService,
   ) {}
 
   async createForSeats(
@@ -174,6 +176,8 @@ export class TicketsService {
         },
       });
     });
+
+    void this.seatingLive.notify(cancelled.reservation.event.ticketmasterId);
 
     return this.toDto(cancelled);
   }

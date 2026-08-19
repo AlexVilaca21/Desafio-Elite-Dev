@@ -1,5 +1,6 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { SeatingLiveService } from 'modules/events/seating-live.service';
 import { PrismaService } from 'modules/prisma/prisma.service';
 import { TicketsService } from 'modules/tickets/tickets.service';
 import { PaymentOutcome } from './dto/create-reservation.dto';
@@ -29,6 +30,7 @@ describe('ReservationsService', () => {
     createForSeats: jest.fn(),
     toDto: jest.fn(),
   };
+  const seatingLive = { notify: jest.fn() };
 
   beforeEach(async () => {
     publishedEvent.findUnique.mockReset();
@@ -38,6 +40,7 @@ describe('ReservationsService', () => {
     transaction.mockReset();
     ticketsService.createForSeats.mockReset();
     ticketsService.toDto.mockReset();
+    seatingLive.notify.mockReset();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -52,6 +55,7 @@ describe('ReservationsService', () => {
           },
         },
         { provide: TicketsService, useValue: ticketsService },
+        { provide: SeatingLiveService, useValue: seatingLive },
       ],
     }).compile();
 
@@ -73,6 +77,7 @@ describe('ReservationsService', () => {
     expect(result.tickets).toEqual([]);
     expect(transaction).not.toHaveBeenCalled();
     expect(result.message).toContain('recusado');
+    expect(seatingLive.notify).not.toHaveBeenCalled();
   });
 
   it('should confirm payment, lock seats and issue tickets', async () => {
@@ -120,6 +125,7 @@ describe('ReservationsService', () => {
     expect(result.total).toBe(160);
     expect(result.tickets).toHaveLength(2);
     expect(ticketsService.createForSeats).toHaveBeenCalled();
+    expect(seatingLive.notify).toHaveBeenCalledWith('event-1');
   });
 
   it('should reject double booking', async () => {

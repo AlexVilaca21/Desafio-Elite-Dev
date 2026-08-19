@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from 'modules/prisma/prisma.service';
+import { SeatingLiveService } from 'modules/events/seating-live.service';
 import { TicketsService } from 'modules/tickets/tickets.service';
 import {
   CreateReservationDto,
@@ -16,6 +17,7 @@ export class ReservationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly ticketsService: TicketsService,
+    private readonly seatingLive: SeatingLiveService,
   ) {}
 
   async create(
@@ -129,9 +131,9 @@ export class ReservationsService {
       }),
     );
 
-    return {
+    const response = {
       id: reservation.created.id,
-      status: 'PAID',
+      status: 'PAID' as const,
       eventId: event.ticketmasterId,
       eventName: event.name,
       total,
@@ -151,5 +153,9 @@ export class ReservationsService {
       })),
       message: 'Pagamento confirmado. Seus ingressos foram gerados.',
     };
+
+    void this.seatingLive.notify(event.ticketmasterId);
+
+    return response;
   }
 }
