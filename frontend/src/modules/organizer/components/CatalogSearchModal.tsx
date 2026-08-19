@@ -50,7 +50,9 @@ export function CatalogSearchModal({
           : 'Buscar eventos para o cartaz'
       }
       subtitle={
-        !loading && !error ? `${events.length} evento(s) retornados pela API` : undefined
+        !loading && !error
+          ? `${events.length} show(s) no catálogo Ticketmaster`
+          : undefined
       }
       headerExtra={loading ? <LinearProgress /> : null}
     >

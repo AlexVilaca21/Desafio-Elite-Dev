@@ -5,7 +5,6 @@ import SearchIcon from '@mui/icons-material/Search';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Skeleton from '@mui/material/Skeleton';
-import TextField from '@mui/material/TextField';
 import {
   emptyEventFilters,
   type EventFiltersValue,
@@ -134,8 +133,8 @@ export function OrganizerPage() {
         <p className={styles.kicker}>Casa</p>
         <h1>Montar o cartaz</h1>
         <p>
-          Busque no catálogo Ticketmaster ou crie o evento do zero, com banner,
-          data, local, capacidade e preço.
+          O mural abaixo é o que o cliente vê. Para incluir um show, abra o
+          catálogo Ticketmaster ou crie o evento do zero.
         </p>
       </header>
 
@@ -151,29 +150,13 @@ export function OrganizerPage() {
             className={styles.toolbar}
             sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}
           >
-            <TextField
-              size="small"
-              value={filters.keyword}
-              onChange={(event) =>
-                setFilters({ ...filters, keyword: event.target.value })
-              }
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') {
-                  event.preventDefault();
-                  setModalOpen(true);
-                }
-              }}
-              placeholder="Buscar no catálogo"
-              aria-label="Buscar no catálogo"
-              sx={{ flex: '1 1 220px', minWidth: 180 }}
-            />
             <Button
               variant="contained"
               startIcon={<SearchIcon />}
               onClick={() => setModalOpen(true)}
               disabled={loadingCatalog && modalOpen}
             >
-              Buscar
+              Adicionar do catálogo
             </Button>
             <Button
               component={Link}
@@ -196,8 +179,8 @@ export function OrganizerPage() {
 
         {!loadingBoard && published.length === 0 && (
           <p className={styles.status}>
-            Ainda não há nada colado no mural. Crie um evento próprio ou busque
-            no catálogo.
+            Ainda não há nada colado no mural. Adicione um show do catálogo ou
+            crie um evento próprio.
           </p>
         )}
 
