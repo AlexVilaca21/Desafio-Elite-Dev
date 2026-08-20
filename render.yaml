@@ -7,7 +7,7 @@ services:
     buildCommand: yarn install --frozen-lockfile && yarn build
     preDeployCommand: yarn prisma:deploy
     startCommand: yarn start:prod
-    healthCheckPath: /api/events
+    healthCheckPath: /api/health
     envVars:
       - key: NODE_VERSION
         value: "20"

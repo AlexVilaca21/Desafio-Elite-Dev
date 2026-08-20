@@ -6,6 +6,7 @@ import { AuthModule } from 'modules/auth/auth.module';
 import { ClassificationsModule } from 'modules/classifications/classifications.module';
 import { EventsModule } from 'modules/events/events.module';
 import { GateModule } from 'modules/gate/gate.module';
+import { HealthModule } from 'modules/health/health.module';
 import { OrganizerModule } from 'modules/organizer/organizer.module';
 import { PrismaModule } from 'modules/prisma/prisma.module';
 import { ReservationsModule } from 'modules/reservations/reservations.module';
@@ -21,6 +22,7 @@ import { VenuesModule } from 'modules/venues/venues.module';
       envFilePath: [join(__dirname, '..', '.env'), join(process.cwd(), '.env')],
     }),
     PrismaModule,
+    HealthModule,
     UsersModule,
     AuthModule,
     EventsModule,
